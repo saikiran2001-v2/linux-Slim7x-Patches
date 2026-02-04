@@ -1,0 +1,64 @@
+From fa7da6170b4650bdf8bf1ee52d83d7c93bc1b0db Mon Sep 17 00:00:00 2001
+From: Saikiran <bjsaikiran@gmail.com>
+Date: Tue, 3 Feb 2026 00:01:32 +0530
+Subject: [PATCH] dt: x1e: add vdd/vddl supplies to I2C HID nodes
+
+Add vdd-supply = <&vreg_l8b_3p0> and vddl-supply = <&vreg_l15b_1p8>
+to the I2C HID nodes:
+
+- touchpad@2c
+- keyboard@3a
+- touchscreen@14
+
+in x1e80100-lenovo-yoga-slim7x.dts.
+
+Rationale: these devices were falling back to
+dummy regulators ("supply vdd/vddl not found"), preventing
+proper power management and causing IRQ affinity failures (-EINVAL)
+during CPU offline in suspend.
+
+Providing correct regulator links lets the kernel control power rails
+and should resolve deep-sleep IRQ affinity / spurious-wake issues.
+
+Signed-off-by: Saikiran <bjsaikiran@gmail.com>
+---
+ arch/arm64/boot/dts/qcom/x1e80100-lenovo-yoga-slim7x.dts | 9 +++++++++
+ 1 file changed, 9 insertions(+)
+
+diff --git a/arch/arm64/boot/dts/qcom/x1e80100-lenovo-yoga-slim7x.dts b/arch/arm64/boot/dts/qcom/x1e80100-lenovo-yoga-slim7x.dts
+index 4cbc151ea72a..7ad3ec9c47bb 100644
+--- a/arch/arm64/boot/dts/qcom/x1e80100-lenovo-yoga-slim7x.dts
++++ b/arch/arm64/boot/dts/qcom/x1e80100-lenovo-yoga-slim7x.dts
+@@ -956,6 +956,9 @@ touchpad@2c {
+ 		compatible = "hid-over-i2c";
+ 		reg = <0x2c>;
+ 
++		vdd-supply = <&vreg_l8b_3p0>;
++		vddl-supply = <&vreg_l15b_1p8>;
++
+ 		hid-descr-addr = <0x20>;
+ 		interrupts-extended = <&tlmm 3 IRQ_TYPE_LEVEL_LOW>;
+ 
+@@ -969,6 +972,9 @@ keyboard@3a {
+ 		compatible = "hid-over-i2c";
+ 		reg = <0x3a>;
+ 
++		vdd-supply = <&vreg_l8b_3p0>;
++		vddl-supply = <&vreg_l15b_1p8>;
++
+ 		hid-descr-addr = <0x1>;
+ 		interrupts-extended = <&tlmm 67 IRQ_TYPE_LEVEL_LOW>;
+ 
+@@ -1176,6 +1182,9 @@ touchscreen@14 {
+ 		compatible = "hid-over-i2c";
+ 		reg = <0x14>;
+ 
++		vdd-supply = <&vreg_l8b_3p0>;
++		vddl-supply = <&vreg_l15b_1p8>;
++
+ 		hid-descr-addr = <0x1>;
+ 		interrupts-extended = <&tlmm 51 IRQ_TYPE_LEVEL_LOW>;
+ 
+-- 
+2.51.0
+

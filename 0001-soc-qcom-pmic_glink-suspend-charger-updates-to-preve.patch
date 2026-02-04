@@ -1,0 +1,102 @@
+From d56134a5d20d6d85975d8d239d8d9d244e021268 Mon Sep 17 00:00:00 2001
+From: Saikiran <bjsaikiran@gmail.com>
+Date: Thu, 29 Jan 2026 12:38:33 +0530
+Subject: [PATCH] soc: qcom: pmic_glink: suspend charger updates to prevent
+ s2idle wakeups
+
+When a charger is connected, the PMIC sends frequent updates via GLINK for
+battery status, UCSI notifications, and Type-C events. These messages
+arrive as interrupts on the apps_rsc, causing the system to wake up
+immediately from s2idle or preventing entry entirely.
+
+This patch adds suspend/resume callbacks to the pmic_glink driver.
+It sets a 'suspended' flag during suspend which causes the driver to
+unconditionally drop all incoming messages, effectively masking these
+wake sources while the system is asleep.
+
+This isolates and fixes the root cause of 'charger connected' wakeups.
+---
+ drivers/soc/qcom/pmic_glink.c | 40 +++++++++++++++++++++++++++++++++++
+ 1 file changed, 40 insertions(+)
+
+diff --git a/drivers/soc/qcom/pmic_glink.c b/drivers/soc/qcom/pmic_glink.c
+index c073d7e2ede6..bf3235621e1e 100644
+--- a/drivers/soc/qcom/pmic_glink.c
++++ b/drivers/soc/qcom/pmic_glink.c
+@@ -14,6 +14,7 @@
+ #include <linux/soc/qcom/pdr.h>
+ #include <linux/soc/qcom/pmic_glink.h>
+ #include <linux/spinlock.h>
++#include <linux/pm.h>
+ 
+ #define PMIC_GLINK_SEND_TIMEOUT (5 * HZ)
+ 
+@@ -39,6 +40,7 @@ struct pmic_glink {
+ 	struct mutex state_lock;
+ 	unsigned int client_state;
+ 	unsigned int pdr_state;
++	bool suspended;
+ 	bool pdr_available;
+ 
+ 	/* serializing clients list updates */
+@@ -151,6 +153,16 @@ static int pmic_glink_rpmsg_callback(struct rpmsg_device *rpdev, void *data,
+ 	struct pmic_glink *pg = dev_get_drvdata(&rpdev->dev);
+ 	unsigned long flags;
+ 
++	/*
++	 * Charger Wakeup Fix: Ignore all messages during suspend.
++	 * When a charger is connected, the PMIC sends frequent updates for
++	 * battery status and UCSI notifications. These wake s2idle immediately.
++	 */
++	if (pg->suspended) {
++		dev_dbg(pg->dev, "Dropping message during suspend\n");
++		return 0;
++	}
++
+ 	if (len < sizeof(*hdr)) {
+ 		dev_warn(pg->dev, "ignoring truncated message\n");
+ 		return 0;
+@@ -405,12 +417,40 @@ static const struct of_device_id pmic_glink_of_match[] = {
+ };
+ MODULE_DEVICE_TABLE(of, pmic_glink_of_match);
+ 
++static int pmic_glink_suspend(struct device *dev)
++{
++	struct pmic_glink *pg = dev_get_drvdata(dev);
++
++	mutex_lock(&pg->state_lock);
++	pg->suspended = true;
++	mutex_unlock(&pg->state_lock);
++
++	return 0;
++}
++
++static int pmic_glink_resume(struct device *dev)
++{
++	struct pmic_glink *pg = dev_get_drvdata(dev);
++
++	mutex_lock(&pg->state_lock);
++	pg->suspended = false;
++	mutex_unlock(&pg->state_lock);
++
++	return 0;
++}
++
++static const struct dev_pm_ops pmic_glink_pm_ops = {
++	.suspend = pmic_glink_suspend,
++	.resume  = pmic_glink_resume,
++};
++
+ static struct platform_driver pmic_glink_driver = {
+ 	.probe = pmic_glink_probe,
+ 	.remove = pmic_glink_remove,
+ 	.driver = {
+ 		.name = "qcom_pmic_glink",
+ 		.of_match_table = pmic_glink_of_match,
++		.pm = &pmic_glink_pm_ops,
+ 	},
+ };
+ module_platform_driver(pmic_glink_driver);
+-- 
+2.51.0
+
