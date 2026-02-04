@@ -10,12 +10,19 @@ Each feature or fix is isolated in its own branch to keep changes modular and ea
 
 | Branch | Description | Status |
 | :--- | :--- | :--- |
-| **[camera](../tree/camera)** | Patches for Camera functionality (OV02C10). | 🟢 Stable |
-| **[deepsleep](../tree/deepsleep)** | Patches for Deep Sleep (Suspend/Resume). | 🚧 In Progress |
-| **[sound](../tree/sound)** | Patches for Audio support. | ⚠️ **Known Issue:** ADSP cannot be loaded (no kernel support yet). |
-| **[wifi](../tree/wifi)** | Patches for WiFi 5GHz and instability. | 🟢 Stable |
-| **[usb-c-display](../tree/usb-c-display)** | Patches for USB-C DisplayPort (External Monitor) Hotplug. | 🟢 Stable |
-| **[misc](../tree/misc)** | Miscellaneous fixes and improvements. | 🟢 Stable |
+| **[camera](../camera)** | Patches for Camera functionality (OV02C10). | 🟢 **Stable** (Workaround)<br>Ideal Solution: Implement Hardware discharge in Rpmh regulator node. |
+| **[deepsleep](../deepsleep)** | Patches for Deep Sleep (Suspend/Resume). | 🚧 **Partially Stable**<br>Suspend drain is still relatively high compared to Windows.<br>Spurious wakes: Fixed. |
+| **[sound](../sound)** | Patches for Audio support. | 🚧 **Partially Stable**<br>ADSP cannot be loaded (No support in upstream). |
+| **[wifi](../wifi)** | Patches for WiFi 5GHz and instability. | 🟢 **Stable** (Workaround)<br>Ideal solution: Fix the issue in mm subsystem. |
+| **[usb-c-display](../usb-c-display)** | Patches for USB-C DisplayPort (External Monitor) Hotplug. | 🟢 **Stable**<br>Not a workaround. |
+
+## Test Setup
+
+These patches have been developed and tested on the following configuration:
+
+- **Device:** Lenovo Yoga Slim 7x (14Q8X9)
+- **Variant:** 16GB RAM / 512GB SSD
+- **Kernel Version:** 6.19-rc8
 
 ## Usage
 
@@ -32,9 +39,16 @@ git checkout camera
 git checkout wifi
 ```
 
-## Current Known Issues
+## Disclaimer
 
-- **Sound**: Audio subsystem requires ADSP firmware/driver support which is currently missing in the mainline kernel for this specific SoC variant. 
+**USE AT YOUR OWN RISK.**
+
+The patches provided in this repository are experimental and intended for development and testing purposes only. I am **NOT** responsible for any damage to your hardware, data loss, or system instability that may result from applying these patches. This includes, but is not limited to:
+- Speaker damage due to incorrect gain settings.
+- Hardware failure due to power management changes.
+- Data corruption due to filesystem crashes.
+
+By using these patches, you agree that you are doing so entirely at your own discretion and risk.
 
 ---
 **Note:** The `main` branch only contains this documentation.
