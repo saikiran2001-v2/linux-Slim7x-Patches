@@ -1,0 +1,55 @@
+From 765f069ede7f17d2eeeb4abe0773e1c977fd64ff Mon Sep 17 00:00:00 2001
+From: Saikiran <bjsaikiran@gmail.com>
+Date: Sun, 25 Jan 2026 11:29:43 +0530
+Subject: [PATCH 2/3] ASoC: qcom: x1e80100: Add Lenovo Yoga Slim 7x Support
+
+Add a dedicated compatible string and configuration for the Lenovo Yoga
+Slim 7x (Gen 9) sound card. This device uses a 4-speaker setup similar
+to other X1E80100 laptops but may require specific channel mappings or
+driver quirks in the future.
+This change introduces:
+- A new compatible string "lenovo,yoga-slim7x-sndcard".
+- A dedicated cfg struct in the driver (currently using default mapping).
+- Updates to the device tree to use this new compatible string.
+
+Signed-off-by: Saikiran <bjsaikiran@gmail.com>
+---
+ arch/arm64/boot/dts/qcom/x1e80100-lenovo-yoga-slim7x.dts | 2 +-
+ sound/soc/qcom/x1e80100.c                                | 5 +++++
+ 2 files changed, 6 insertions(+), 1 deletion(-)
+
+diff --git a/arch/arm64/boot/dts/qcom/x1e80100-lenovo-yoga-slim7x.dts b/arch/arm64/boot/dts/qcom/x1e80100-lenovo-yoga-slim7x.dts
+index f1bfad1cb57d..8f1047ff2b0e 100644
+--- a/arch/arm64/boot/dts/qcom/x1e80100-lenovo-yoga-slim7x.dts
++++ b/arch/arm64/boot/dts/qcom/x1e80100-lenovo-yoga-slim7x.dts
+@@ -188,7 +188,7 @@ linux,cma {
+ 	};
+ 
+ 	sound {
+-		compatible = "qcom,x1e80100-sndcard";
++		compatible = "lenovo,yoga-slim7x-sndcard";
+ 		model = "X1E80100-LENOVO-Yoga-Slim7x";
+ 		audio-routing = "WooferLeft IN", "WSA WSA_SPK1 OUT",
+ 				"TweeterLeft IN", "WSA WSA_SPK2 OUT",
+diff --git a/sound/soc/qcom/x1e80100.c b/sound/soc/qcom/x1e80100.c
+index 2fde3cc07d5e..8be5b212ac91 100644
+--- a/sound/soc/qcom/x1e80100.c
++++ b/sound/soc/qcom/x1e80100.c
+@@ -227,9 +227,14 @@ static const struct x1e80100_snd_cfg dell_xps13_9345_cfg = {
+ 	.channels_num = ARRAY_SIZE(right_left_4_channels_map),
+ };
+ 
++static const struct x1e80100_snd_cfg lenovo_yoga_slim7x_cfg = {
++	.driver_name = "x1e80100",
++};
++
+ static const struct of_device_id snd_x1e80100_dt_match[] = {
+ 	{ .compatible = "qcom,x1e80100-sndcard", .data = &x1e80100_cfg, },
+ 	{ .compatible = "dell,xps13-9345-sndcard", .data = &dell_xps13_9345_cfg, },
++	{ .compatible = "lenovo,yoga-slim7x-sndcard", .data = &lenovo_yoga_slim7x_cfg, },
+ 	{ .compatible = "qcom,glymur-sndcard", .data = &glymur_cfg, },
+ 	{}
+ };
+-- 
+2.51.0
+
