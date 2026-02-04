@@ -1,40 +1,100 @@
-# X1E80100 Linux Kernel Patches for Lenovo Yoga Slim 7x
+# AudioReach Topology Fix
 
-This repository contains specific patch sets for the Lenovo Yoga Slim 7x (Snapdragon X Elite) running Linux.
+This branch contains patches to enable AudioReach topology loading on the Lenovo Yoga Slim 7x.
 
-## Branch Structure
+## Description
+Enables the loading of AudioReach topology files required for sound functionality on the Qualcomm Snapdragon X Elite platform.
 
-Each feature or fix is isolated in its own branch to keep changes modular and easy to apply. Please switch to the relevant branch to access the patches for a specific feature.
+## Exact Issue
 
-### Available Branches
+### Bug Title: AudioReach: Topology loading fails with firmware path resolution error on Snapdragon X Elite platforms
 
-| Branch | Description | Status |
-| :--- | :--- | :--- |
-| **[camera](../tree/camera)** | Patches for Camera functionality (OV02C10). | 🟢 Stable |
-| **[deepsleep](../tree/deepsleep)** | Patches for Deep Sleep (Suspend/Resume). | 🚧 In Progress |
-| **[sound](../tree/sound)** | Patches for Audio support. | ⚠️ **Known Issue:** ADSP cannot be loaded (no kernel support yet). |
-| **[wifi](../tree/wifi)** | Patches for WiFi 5GHz and instability. | 🟢 Stable |
-| **[usb-c-display](../tree/usb-c-display)** | Patches for USB-C DisplayPort (External Monitor) Hotplug. | 🟢 Stable |
-| **[misc](../tree/misc)** | Miscellaneous fixes and improvements. | 🟢 Stable |
-
-## Usage
-
-To use these patches, clone the repository and checkout the desired branch:
-
-```bash
-git clone https://github.com/saikiran2001/linux-patches.git
-cd linux-patches
-
-# For Camera patches
-git checkout camera
-
-# For WiFi patches
-git checkout wifi
+**Log Reference:**
+```
+[    8.350070] snd-x1e80100 sound: Loading topology from qcom/x1e80100/LENOVO/83ED/LenovoSlim7x-tplg.bin
+[    8.350XXX] snd-x1e80100 sound: error: failed to load topology: -2
 ```
 
-## Current Known Issues
+## Patch Details
+- `0001-Revert-arm64-dts-qcom-x1-el2-Add-qcom-broken-reset-f.patch`
+- `0002-ASoC-qcom-x1e80100-Add-Lenovo-Yoga-Slim-7x-Support.patch`
+- `0003-ASoC-qcom-x1e80100-Add-topology-file-loading-support.patch`
 
-- **Sound**: Audio subsystem requires ADSP firmware/driver support which is currently missing in the mainline kernel for this specific SoC variant. 
+## Instructions
 
----
-**Note:** The `main` branch only contains this documentation.
+Apply the patches to your kernel source:
+
+```bash
+cd /path/to/kernel/source
+git am /path/to/patches/*.patch
+```
+
+## Setup Instructions
+
+**Important:** This patch series requires specific topology and UCM configuration files to function.
+
+### 1. Audioreach-topology
+Latest `linux-next` contains required binaries. Alternatively, compile from source as follows:
+
+* Download latest sources with Lenovo Yoga Slim 7x support from [https://github.com/linux-msm/audioreach-topology/](https://github.com/linux-msm/audioreach-topology/)
+* Build via:
+```bash
+cmake .
+cmake --build .
+```
+
+### 2. AudioReach Topology Installation
+
+**Files to install:**
+
+1. **Topology binary** (`.bin`):
+   
+   Copy and rename the binary to `LenovoSlim7x-tplg.bin`:
+   ```bash
+   sudo cp X1E80100-LENOVO-Yoga-Slim7x-tplg.bin \
+     /lib/firmware/updates/qcom/x1e80100/LENOVO/83ED/LenovoSlim7x-tplg.bin
+   
+   sudo chmod 644 /lib/firmware/updates/qcom/x1e80100/LENOVO/83ED/LenovoSlim7x-tplg.bin
+   ```
+
+2. **UCM configuration** (`.conf`):
+   ```bash
+   sudo mkdir -p /usr/share/alsa/ucm2/conf.d/x1e80100/LENOVO/83ED/
+   
+   sudo cp X1E80100-LENOVO-Yoga-Slim7x.conf \
+     /usr/share/alsa/ucm2/conf.d/x1e80100/LENOVO/83ED
+
+   sudo chmod 644 /usr/share/alsa/ucm2/conf.d/x1e80100/LENOVO/83ED/X1E80100-LENOVO-Yoga-Slim7x.conf
+   ```
+
+3. ALSA Configuration
+
+* Download the latest configuration with Lenovo Yoga Slim 7x support from [https://github.com/alsa-project/alsa-ucm-conf](https://github.com/alsa-project/alsa-ucm-conf)
+* Follow the instructions in the repository's `README.md` to install.
+
+**Important:** To avoid potential hardware damage, lower the gain settings before use. Change the value `84` to `5` in the following files:
+- `/usr/share/alsa/ucm2/codecs/qcom-lpass/wsa-macro/four-speakers/init.conf`
+- `/usr/share/alsa/ucm2/codecs
+
+**Note**: If you are on kernel with latest tag in sound, the sound will be low and then you can experiment with this value gradually without damaging your hardware. 
+
+4. **Reload audio stack:**
+   ```bash
+   systemctl --user restart pipewire pipewire-pulse wireplumber
+   ```
+
+5. **Verify:**
+   ```bash
+   # Check topology loaded
+   dmesg | grep -i tplg
+   
+   # Check card detected
+   aplay -l
+   
+   # Check UCM
+   alsaucm listcards
+   ```
+
+## Tested On
+- Kernel Version: **6.19-rc8**
+- **Hardware:** Lenovo Yoga Slim 7x (Snapdragon X Elite)
