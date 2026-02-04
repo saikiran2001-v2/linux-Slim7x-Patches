@@ -1,0 +1,101 @@
+From 128a70113d7ef110458c3604d3a19ba4277865a9 Mon Sep 17 00:00:00 2001
+From: Saikiran <bjsaikiran@gmail.com>
+Date: Sun, 1 Feb 2026 23:34:47 +0530
+Subject: [PATCH] wifi: ath12k: fix CMA error and MHI state mismatch during
+ resume
+
+Commit 8d5f4da8d70b ("wifi: ath12k: support suspend/resume") introduced
+system suspend/resume support but caused a critical regression where
+CMA pages are corrupted during resume.
+
+1. CMA page corruption:
+   Calling mhi_unprepare_after_power_down() during suspend (via
+   ATH12K_MHI_DEINIT) prematurely frees the fbc_image and rddm_image
+   DMA buffers. When these pages are accessed during resume, the kernel
+   detects corruption (Bad page state).
+
+To fix this corruption, the driver must skip ATH12K_MHI_DEINIT during
+suspend, preserving the DMA buffers. However, implementing this fix
+exposes a second issue in the state machine:
+
+2. Resume failure due to MHI state mismatch:
+   When DEINIT is skipped during suspend to protect the memory, the
+   ATH12K_MHI_INIT bit remains set. On resume, ath12k_mhi_start()
+   blindly attempts to set INIT again, but the state machine rejects
+   the transition:
+
+   ath12k_wifi7_pci ...: failed to set mhi state INIT(0) in current
+   mhi state (0x1)
+
+Fix the corruption and enable the correct suspend flow by:
+
+1. In ath12k_mhi_stop(), skipping ATH12K_MHI_DEINIT if suspending.
+   This prevents the memory corruption by keeping the device context
+   valid (MHI_POWER_OFF_KEEP_DEV).
+
+2. In ath12k_mhi_start(), checking if MHI_INIT is already set.
+   This accommodates the new suspend flow where the device remains
+   initialized, allowing the driver to proceed directly to POWER_ON.
+
+Tested with suspend/resume cycles on Qualcomm Snapdragon X Elite
+(SC8380XP) with WCN7850 WiFi. No CMA corruption observed, WiFi resumes
+successfully, and deep sleep works correctly.
+
+Fixes: 8d5f4da8d70b ("wifi: ath12k: support suspend/resume")
+Tested-on: WCN7850 hw2.0 PCI WLAN.HMT.1.1.c5-00302 (Lenovo Yoga Slim 7x)
+Signed-off-by: Saikiran <bjsaikiran@gmail.com>
+---
+ drivers/net/wireless/ath/ath12k/mhi.c | 24 +++++++++++++++++-------
+ 1 file changed, 17 insertions(+), 7 deletions(-)
+
+diff --git a/drivers/net/wireless/ath/ath12k/mhi.c b/drivers/net/wireless/ath/ath12k/mhi.c
+index 45c0f66dcc5e..1a0b3bcc6bbf 100644
+--- a/drivers/net/wireless/ath/ath12k/mhi.c
++++ b/drivers/net/wireless/ath/ath12k/mhi.c
+@@ -485,9 +485,14 @@ int ath12k_mhi_start(struct ath12k_pci *ab_pci)
+ 
+ 	ab_pci->mhi_ctrl->timeout_ms = MHI_TIMEOUT_DEFAULT_MS;
+ 
+-	ret = ath12k_mhi_set_state(ab_pci, ATH12K_MHI_INIT);
+-	if (ret)
+-		goto out;
++	/* In case of suspend/resume, MHI INIT is already done.
++	 * So check if MHI INIT is set or not.
++	 */
++	if (!test_bit(ATH12K_MHI_INIT, &ab_pci->mhi_state)) {
++		ret = ath12k_mhi_set_state(ab_pci, ATH12K_MHI_INIT);
++		if (ret)
++			goto out;
++	}
+ 
+ 	ret = ath12k_mhi_set_state(ab_pci, ATH12K_MHI_POWER_ON);
+ 	if (ret)
+@@ -501,16 +506,21 @@ int ath12k_mhi_start(struct ath12k_pci *ab_pci)
+ 
+ void ath12k_mhi_stop(struct ath12k_pci *ab_pci, bool is_suspend)
+ {
+-	/* During suspend we need to use mhi_power_down_keep_dev()
+-	 * workaround, otherwise ath12k_core_resume() will timeout
+-	 * during resume.
++	/* During suspend, we need to use mhi_power_down_keep_dev()
++	 * and avoid calling MHI_DEINIT. The deinit frees BHIE tables
++	 * which causes memory corruption when those pages are
++	 * accessed/freed again during resume. We want to keep the
++	 * device prepared for resume, otherwise ath12k_core_resume()
++	 * will timeout.
+ 	 */
+ 	if (is_suspend)
+ 		ath12k_mhi_set_state(ab_pci, ATH12K_MHI_POWER_OFF_KEEP_DEV);
+ 	else
+ 		ath12k_mhi_set_state(ab_pci, ATH12K_MHI_POWER_OFF);
+ 
+-	ath12k_mhi_set_state(ab_pci, ATH12K_MHI_DEINIT);
++	/* Only deinit when doing full power down, not during suspend */
++	if (!is_suspend)
++		ath12k_mhi_set_state(ab_pci, ATH12K_MHI_DEINIT);
+ }
+ 
+ void ath12k_mhi_suspend(struct ath12k_pci *ab_pci)
+-- 
+2.51.0
+
