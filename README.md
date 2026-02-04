@@ -1,40 +1,42 @@
-# X1E80100 Linux Kernel Patches for Lenovo Yoga Slim 7x
+# Deep Sleep (Suspend/Resume) Fixes
 
-This repository contains specific patch sets for the Lenovo Yoga Slim 7x (Snapdragon X Elite) running Linux.
+This branch contains patches to improve deep sleep (s2idle) reliability and prevent spurious wakeups on the Lenovo Yoga Slim 7x.
 
-## Branch Structure
+## Description
+Fixes issues where the device would wake up immediately after suspending, particularly when a charger is connected or due to improper power management of HID devices (Touchpad/Keyboard/Touchscreen).
 
-Each feature or fix is isolated in its own branch to keep changes modular and easy to apply. Please switch to the relevant branch to access the patches for a specific feature.
+## Exact Issues
 
-### Available Branches
+### 1. Charger Wakeup Fix
+**Issue:**
+When a charger is connected, the PMIC sends frequent updates via GLINK for battery status, UCSI notifications, and Type-C events. These messages arrive as interrupts on the `apps_rsc`, causing the system to wake up immediately from s2idle or preventing entry entirely.
 
-| Branch | Description | Status |
-| :--- | :--- | :--- |
-| **[camera](../tree/camera)** | Patches for Camera functionality (OV02C10). | 🟢 Stable |
-| **[deepsleep](../tree/deepsleep)** | Patches for Deep Sleep (Suspend/Resume). | 🚧 In Progress |
-| **[sound](../tree/sound)** | Patches for Audio support. | ⚠️ **Known Issue:** ADSP cannot be loaded (no kernel support yet). |
-| **[wifi](../tree/wifi)** | Patches for WiFi 5GHz and instability. | 🟢 Stable |
-| **[usb-c-display](../tree/usb-c-display)** | Patches for USB-C DisplayPort (External Monitor) Hotplug. | 🟢 Stable |
-| **[misc](../tree/misc)** | Miscellaneous fixes and improvements. | 🟢 Stable |
+**Fix:**
+- `0001-soc-qcom-pmic_glink-suspend-charger-updates-to-preve.patch`
+- Adds suspend/resume callbacks to the `pmic_glink` driver.
+- Sets a 'suspended' flag during suspend which causes the driver to unconditionally drop all incoming messages, effectively masking these wake sources while the system is asleep.
 
-## Usage
+### 2. I2C HID Regulator Supply Fix
+**Issue:**
+Input devices (Touchpad, Keyboard, Touchscreen) were falling back to dummy regulators because `vdd` and `vddl` supplies were not defined in the Device Tree. This prevented proper power management and caused IRQ affinity failures (`-EINVAL`) during CPU offline processes in suspend, leading to spurious wakeups.
 
-To use these patches, clone the repository and checkout the desired branch:
+**Fix:**
+- `0002-dt-x1e-add-vdd-vddl-supplies-to-I2C-HID-nodes.patch`
+- Adds `vdd-supply = <&vreg_l8b_3p0>` and `vddl-supply = <&vreg_l15b_1p8>` to the I2C HID nodes in `x1e80100-lenovo-yoga-slim7x.dts`.
+
+## Patch Details
+- `0001-soc-qcom-pmic_glink-suspend-charger-updates-to-preve.patch`
+- `0002-dt-x1e-add-vdd-vddl-supplies-to-I2C-HID-nodes.patch`
+
+## Instructions
+
+Apply the patches to your kernel source:
 
 ```bash
-git clone https://github.com/saikiran2001/linux-patches.git
-cd linux-patches
-
-# For Camera patches
-git checkout camera
-
-# For WiFi patches
-git checkout wifi
+cd /path/to/kernel/source
+git am /path/to/patches/*.patch
 ```
 
-## Current Known Issues
-
-- **Sound**: Audio subsystem requires ADSP firmware/driver support which is currently missing in the mainline kernel for this specific SoC variant. 
-
----
-**Note:** The `main` branch only contains this documentation.
+## Tested On
+- Kernel Version: **6.19-rc8**
+- **Hardware:** Lenovo Yoga Slim 7x (Snapdragon X Elite)
