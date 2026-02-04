@@ -1,40 +1,28 @@
-# X1E80100 Linux Kernel Patches for Lenovo Yoga Slim 7x
+# USB-C DisplayPort Hotplug Fix
 
-This repository contains specific patch sets for the Lenovo Yoga Slim 7x (Snapdragon X Elite) running Linux.
+This branch contains a patch to fix USB-C DisplayPort hotplug functionality on the Lenovo Yoga Slim 7x.
 
-## Branch Structure
+## Description
+Fixes crashes or failures when hotplugging an external monitor via USB-C after long suspend.
 
-Each feature or fix is isolated in its own branch to keep changes modular and easy to apply. Please switch to the relevant branch to access the patches for a specific feature.
+## Exact issue
+1. Suspend the device for more than 10 minutes while an external monitor is connected.
+2. Wake the device up.
+3. External monitor will not be detected.
+4. Disconnect the external monitor (Inorder to reconnect).
+5. The device will reboot.
 
-### Available Branches
+## Patch Details
+- **File**: `0001-drm-msm-dp-Fix-USB-C-DisplayPort-hotplug-crash-after.patch`
 
-| Branch | Description | Status |
-| :--- | :--- | :--- |
-| **[camera](../tree/camera)** | Patches for Camera functionality (OV02C10). | 🟢 Stable |
-| **[deepsleep](../tree/deepsleep)** | Patches for Deep Sleep (Suspend/Resume). | 🚧 In Progress |
-| **[sound](../tree/sound)** | Patches for Audio support. | ⚠️ **Known Issue:** ADSP cannot be loaded (no kernel support yet). |
-| **[wifi](../tree/wifi)** | Patches for WiFi 5GHz and instability. | 🟢 Stable |
-| **[usb-c-display](../tree/usb-c-display)** | Patches for USB-C DisplayPort (External Monitor) Hotplug. | 🟢 Stable |
-| **[misc](../tree/misc)** | Miscellaneous fixes and improvements. | 🟢 Stable |
+## Instructions
 
-## Usage
-
-To use these patches, clone the repository and checkout the desired branch:
+Apply the patch directly to your kernel source:
 
 ```bash
-git clone https://github.com/saikiran2001/linux-patches.git
-cd linux-patches
-
-# For Camera patches
-git checkout camera
-
-# For WiFi patches
-git checkout wifi
+cd /path/to/kernel/source
+git am < /path/to/patches/0001-drm-msm-dp-Fix-USB-C-DisplayPort-hotplug-crash-after.patch
 ```
 
-## Current Known Issues
-
-- **Sound**: Audio subsystem requires ADSP firmware/driver support which is currently missing in the mainline kernel for this specific SoC variant. 
-
----
-**Note:** The `main` branch only contains this documentation.
+## Tested On
+- Kernel Version: **6.19-rc8**
