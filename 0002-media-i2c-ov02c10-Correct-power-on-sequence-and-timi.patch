@@ -1,0 +1,59 @@
+From 1c48c56e843981b2d411f02a46aaa50bf5d71652 Mon Sep 17 00:00:00 2001
+From: Saikiran <bjsaikiran@gmail.com>
+Date: Mon, 26 Jan 2026 21:53:58 +0530
+Subject: [PATCH 2/6] media: i2c: ov02c10: Correct power-on sequence and timing
+
+The previous power-on sequence did not strictly follow the hardware timing
+requirements (T1), potentially leading to initialization failures on some
+platforms.
+
+Update the sequence to match the datasheet and maintainer recommendations:
+1. Assert XSHUTDOWN (reset) for 5ms (T1 >= 5ms) before enabling power
+   resources.
+2. Enable clock and regulators in the standard order.
+3. De-assert XSHUTDOWN.
+4. Wait 5ms (T2 >= 5ms) for sensor boot before I2C access (using a wider
+   range for timer coalescing).
+
+This ensures the sensor enters a clean state during cold boot.
+
+Tested-on: Lenovo Yoga Slim 7x (Snapdragon X Elite)
+Fixes: 44f8901 ("media: i2c: add OmniVision OV02C10 sensor driver")
+Cc: stable@vger.kernel.org
+Signed-off-by: Saikiran <bjsaikiran@gmail.com>
+---
+ drivers/media/i2c/ov02c10.c | 10 +++++++---
+ 1 file changed, 7 insertions(+), 3 deletions(-)
+
+diff --git a/drivers/media/i2c/ov02c10.c b/drivers/media/i2c/ov02c10.c
+index fa7cc48b769a..3bfbd0deb126 100644
+--- a/drivers/media/i2c/ov02c10.c
++++ b/drivers/media/i2c/ov02c10.c
+@@ -676,6 +676,12 @@ static int ov02c10_power_on(struct device *dev)
+ 	struct ov02c10 *ov02c10 = to_ov02c10(sd);
+ 	int ret;
+ 
++	/* Assert reset for 5ms to ensure sensor is in reset state */
++	if (ov02c10->reset) {
++		gpiod_set_value_cansleep(ov02c10->reset, 1);
++		usleep_range(5000, 6000);
++	}
++
+ 	ret = clk_prepare_enable(ov02c10->img_clk);
+ 	if (ret < 0) {
+ 		dev_err(dev, "failed to enable imaging clock: %d", ret);
+@@ -691,10 +697,8 @@ static int ov02c10_power_on(struct device *dev)
+ 	}
+ 
+ 	if (ov02c10->reset) {
+-		/* Assert reset for at least 2ms on back to back off-on */
+-		usleep_range(2000, 2200);
+ 		gpiod_set_value_cansleep(ov02c10->reset, 0);
+-		usleep_range(5000, 5100);
++		usleep_range(5000, 5500);
+ 	}
+ 
+ 	return 0;
+-- 
+2.51.0
+

@@ -1,0 +1,64 @@
+From 4aaa7631aa38bf5b64b6ce513ef4ed2914848114 Mon Sep 17 00:00:00 2001
+From: Saikiran <bjsaikiran@gmail.com>
+Date: Mon, 26 Jan 2026 16:16:55 +0530
+Subject: [PATCH 1/6] media: i2c: ov02c10: Fix use-after-free in remove
+ function
+
+The ov02c10_remove() function has a race condition where v4l2_ctrl_handler
+and media_entity resources are freed before the device is powered off.
+If userspace (e.g., PipeWire/WirePlumber) accesses the device during
+removal, this causes a use-after-free leading to kernel oops with
+"Execute from non-executable memory" errors.
+
+The issue occurs because:
+1. v4l2_ctrl_handler_free() is called first
+2. Userspace may still have the device open
+3. Control access triggers use-after-free
+4. Device is powered off afterwards (too late)
+
+Fix by reordering cleanup to disable runtime PM and power off the device
+BEFORE freeing v4l2_ctrl_handler and media_entity resources. This ensures
+the device is in a safe state before any resources are freed.
+
+Call sequence after fix:
+1. v4l2_async_unregister_subdev() - unregister from V4L2
+2. pm_runtime_disable() - disable runtime PM
+3. ov02c10_power_off() - power off device if needed
+4. v4l2_subdev_cleanup() - clean up subdev
+5. media_entity_cleanup() - clean up media entity
+6. v4l2_ctrl_handler_free() - free control handler (safe now)
+
+Tested-on: Lenovo Yoga Slim 7x (Snapdragon X Elite)
+Fixes: 44f8901 ("media: i2c: add OmniVision OV02C10 sensor driver")
+Cc: stable@vger.kernel.org
+Reviewed-by: Hans de Goede <hansg@kernel.org>
+Signed-off-by: Saikiran <bjsaikiran@gmail.com>
+---
+ drivers/media/i2c/ov02c10.c | 6 +++---
+ 1 file changed, 3 insertions(+), 3 deletions(-)
+
+diff --git a/drivers/media/i2c/ov02c10.c b/drivers/media/i2c/ov02c10.c
+index cf93d36032e1..fa7cc48b769a 100644
+--- a/drivers/media/i2c/ov02c10.c
++++ b/drivers/media/i2c/ov02c10.c
+@@ -864,14 +864,14 @@ static void ov02c10_remove(struct i2c_client *client)
+ 	struct ov02c10 *ov02c10 = to_ov02c10(sd);
+ 
+ 	v4l2_async_unregister_subdev(sd);
+-	v4l2_subdev_cleanup(sd);
+-	media_entity_cleanup(&sd->entity);
+-	v4l2_ctrl_handler_free(sd->ctrl_handler);
+ 	pm_runtime_disable(ov02c10->dev);
+ 	if (!pm_runtime_status_suspended(ov02c10->dev)) {
+ 		ov02c10_power_off(ov02c10->dev);
+ 		pm_runtime_set_suspended(ov02c10->dev);
+ 	}
++	v4l2_subdev_cleanup(sd);
++	media_entity_cleanup(&sd->entity);
++	v4l2_ctrl_handler_free(sd->ctrl_handler);
+ }
+ 
+ static int ov02c10_probe(struct i2c_client *client)
+-- 
+2.51.0
+

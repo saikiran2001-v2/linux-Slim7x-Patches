@@ -1,0 +1,69 @@
+From f20c21d2d00f2a8d32c48319fd98953f70fa4994 Mon Sep 17 00:00:00 2001
+From: Saikiran <bjsaikiran@gmail.com>
+Date: Mon, 26 Jan 2026 21:54:26 +0530
+Subject: [PATCH 6/6] media: i2c: ov02c10: Use runtime PM autosuspend to avoid
+ brownouts
+
+On Qualcomm X1E80100 platforms, the OV02C10 sensor experiences brownouts
+if power-cycled too quickly (< 2.3s) due to slow passive discharge of
+regulator rails.
+
+Implement Runtime PM Autosuspend with a delay of 1000ms. This keeps the
+regulators enabled for a short duration after the device is closed,
+preventing costly power-off/power-on cycles during rapid user
+interactions (e.g., browser permission checks).
+
+This aligns the driver with standard power management practices used in
+other sensor drivers (e.g., ov2680) to handle platform latency
+constraints.
+
+Tested-on: Lenovo Yoga Slim 7x (Snapdragon X Elite)
+Fixes: 44f8901 ("media: i2c: add OmniVision OV02C10 sensor driver")
+Cc: stable@vger.kernel.org
+Signed-off-by: Saikiran <bjsaikiran@gmail.com>
+---
+ drivers/media/i2c/ov02c10.c | 7 +++++--
+ 1 file changed, 5 insertions(+), 2 deletions(-)
+
+diff --git a/drivers/media/i2c/ov02c10.c b/drivers/media/i2c/ov02c10.c
+index 3bfbd0deb126..221cb93126ec 100644
+--- a/drivers/media/i2c/ov02c10.c
++++ b/drivers/media/i2c/ov02c10.c
+@@ -619,7 +619,7 @@ static int ov02c10_enable_streams(struct v4l2_subdev *sd,
+ 	ret = cci_write(ov02c10->regmap, OV02C10_REG_STREAM_CONTROL, 1, NULL);
+ out:
+ 	if (ret)
+-		pm_runtime_put(ov02c10->dev);
++		pm_runtime_put_autosuspend(ov02c10->dev);
+ 
+ 	return ret;
+ }
+@@ -631,7 +631,7 @@ static int ov02c10_disable_streams(struct v4l2_subdev *sd,
+ 	struct ov02c10 *ov02c10 = to_ov02c10(sd);
+ 
+ 	cci_write(ov02c10->regmap, OV02C10_REG_STREAM_CONTROL, 0, NULL);
+-	pm_runtime_put(ov02c10->dev);
++	pm_runtime_put_autosuspend(ov02c10->dev);
+ 
+ 	return 0;
+ }
+@@ -869,6 +869,7 @@ static void ov02c10_remove(struct i2c_client *client)
+ 
+ 	v4l2_async_unregister_subdev(sd);
+ 	pm_runtime_disable(ov02c10->dev);
++	pm_runtime_dont_use_autosuspend(ov02c10->dev);
+ 	if (!pm_runtime_status_suspended(ov02c10->dev)) {
+ 		ov02c10_power_off(ov02c10->dev);
+ 		pm_runtime_set_suspended(ov02c10->dev);
+@@ -952,6 +953,8 @@ static int ov02c10_probe(struct i2c_client *client)
+ 		goto probe_error_media_entity_cleanup;
+ 	}
+ 
++	pm_runtime_set_autosuspend_delay(ov02c10->dev, 2300);
++	pm_runtime_use_autosuspend(ov02c10->dev);
+ 	pm_runtime_set_active(ov02c10->dev);
+ 	pm_runtime_enable(ov02c10->dev);
+ 
+-- 
+2.51.0
+
