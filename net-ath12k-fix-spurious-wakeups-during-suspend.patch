@@ -1,0 +1,74 @@
+From 7d94465db3eef40257eefe100c64095992af8a4a Mon Sep 17 00:00:00 2001
+From: Saikiran <bjsaikiran@gmail.com>
+Date: Sat, 7 Feb 2026 21:51:47 +0530
+Subject: [PATCH] net: ath12k: fix spurious wakeups during suspend
+
+The WCN7850 device was generating unwanted wakeup events during suspend
+even when /sys/bus/mhi/devices/mhi0/power/wakeup was set to "disabled",
+causing the system to wake immediately after entering suspend.
+
+The original fix attempted to prevent this by conditionally changing MHI
+power state based on device_may_wakeup(), but this caused resume timeouts
+because MHI_POWER_OFF was used instead of MHI_POWER_OFF_KEEP_DEV.
+
+This fix properly blocks spurious wakeups by:
+- Always using MHI_POWER_OFF_KEEP_DEV during suspend to maintain MHI
+  tables and state (fixes resume timeout side effect)
+- Disabling PCI PME (Power Management Events) at the hardware level in
+  suspend_late when wakeup is not desired, blocking wakeup signals at
+  the source
+- Re-enabling PME in resume_early to restore normal operation
+
+The PME control is done after MHI enters low power state and before
+MHI resumes, ensuring proper suspend/resume sequencing while preventing
+hardware-generated wakeup events.
+
+Tested on Lenovo Yoga Slim 7x (Snapdragon X Elite) with WCN7850.
+System now stays suspended without spurious wakeups.
+
+Signed-off-by: Saikiran <bjsaikiran@gmail.com>
+---
+ drivers/net/wireless/ath/ath12k/pci.c | 13 +++++++++++++
+ 1 file changed, 13 insertions(+)
+
+diff --git a/drivers/net/wireless/ath/ath12k/pci.c b/drivers/net/wireless/ath/ath12k/pci.c
+index 1b2b62670666..0f07bc17fe08 100644
+--- a/drivers/net/wireless/ath/ath12k/pci.c
++++ b/drivers/net/wireless/ath/ath12k/pci.c
+@@ -1760,20 +1760,33 @@ static __maybe_unused int ath12k_pci_pm_resume(struct device *dev)
+ static __maybe_unused int ath12k_pci_pm_suspend_late(struct device *dev)
+ {
+ 	struct ath12k_base *ab = dev_get_drvdata(dev);
++	struct ath12k_pci *ab_pci = ath12k_pci_priv(ab);
+ 	int ret;
+ 
+ 	ret = ath12k_core_suspend_late(ab);
+ 	if (ret)
+ 		ath12k_warn(ab, "failed to late suspend core: %d\n", ret);
+ 
++	/* Disable PCI PME (Power Management Event) to prevent spurious wakeups
++	 * when system wakeup is disabled. This is done at hardware level after
++	 * MHI has been put in low power state.
++	 */
++	if (!device_may_wakeup(dev))
++		pci_pme_active(ab_pci->pdev, false);
++
+ 	return ret;
+ }
+ 
+ static __maybe_unused int ath12k_pci_pm_resume_early(struct device *dev)
+ {
+ 	struct ath12k_base *ab = dev_get_drvdata(dev);
++	struct ath12k_pci *ab_pci = ath12k_pci_priv(ab);
+ 	int ret;
+ 
++	/* Re-enable PCI PME if it was disabled during suspend */
++	if (!device_may_wakeup(dev))
++		pci_pme_active(ab_pci->pdev, true);
++
+ 	ret = ath12k_core_resume_early(ab);
+ 	if (ret)
+ 		ath12k_warn(ab, "failed to early resume core: %d\n", ret);
+-- 
+2.51.0
+

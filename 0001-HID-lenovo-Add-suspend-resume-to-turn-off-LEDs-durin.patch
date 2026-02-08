@@ -1,0 +1,91 @@
+From f7f37727d1a250cd2fcc520359724157b956448a Mon Sep 17 00:00:00 2001
+From: Saikiran <bjsaikiran@gmail.com>
+Date: Thu, 5 Feb 2026 10:29:17 +0530
+Subject: [PATCH 1/3] HID: lenovo: Add suspend/resume to turn off LEDs during
+ sleep
+
+Add proper PM suspend/resume callbacks to the hid-lenovo driver to save LED states and turn them off during system suspend. This reduces power consumption during sleep and matches Windows behavior.
+
+The keyboard backlight is firmware-controlled and automatically times out during idle. By turning off the mute/micmute LEDs during suspend, we signal the keyboard firmware that the system is idle, which should trigger the backlight timeout logic.
+
+This fixes high battery drain during suspend on Lenovo Yoga Slim 7x where keyboard LEDs stay on, consuming 100-500mW.
+
+Signed-off-by: Saikiran <bjsaikiran@gmail.com>
+---
+ drivers/hid/hid-lenovo.c | 46 ++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 46 insertions(+)
+
+diff --git a/drivers/hid/hid-lenovo.c b/drivers/hid/hid-lenovo.c
+index 9cc3e029e9f6..1fb6ed48ca8c 100644
+--- a/drivers/hid/hid-lenovo.c
++++ b/drivers/hid/hid-lenovo.c
+@@ -48,6 +48,8 @@ struct lenovo_drvdata {
+ 	u8 led_report[3]; /* Must be first for proper alignment */
+ 	int led_state;
+ 	struct mutex led_report_mutex;
++	enum led_brightness saved_led_mute_brightness;
++	enum led_brightness saved_led_micmute_brightness;
+ 	struct led_classdev led_mute;
+ 	struct led_classdev led_micmute;
+ 	struct work_struct fn_lock_sync_work;
+@@ -1423,6 +1425,48 @@ static int lenovo_probe(struct hid_device *hdev,
+ }
+ 
+ #ifdef CONFIG_PM
++static int lenovo_suspend(struct hid_device *hdev, pm_message_t message)
++{
++	struct lenovo_drvdata *data = hid_get_drvdata(hdev);
++
++	/* Only handle devices with LED support */
++	if (!data)
++		return 0;
++
++	/* Save current LED brightness before turning off */
++	if (data->led_mute.brightness_get) {
++		data->saved_led_mute_brightness = data->led_mute.brightness;
++		data->saved_led_micmute_brightness = data->led_micmute.brightness;
++
++		/* Turn off LEDs to reduce power consumption during sleep */
++		lenovo_led_brightness_set(&data->led_mute, LED_OFF);
++		lenovo_led_brightness_set(&data->led_micmute, LED_OFF);
++	}
++
++	return 0;
++}
++
++static int lenovo_resume(struct hid_device *hdev)
++{
++	struct lenovo_drvdata *data = hid_get_drvdata(hdev);
++
++	/* Only handle devices with LED support */
++	if (!data)
++		return 0;
++
++	/* Restore LED brightness after resume */
++	if (data->led_mute.brightness_get) {
++		if (data->saved_led_mute_brightness)
++			lenovo_led_brightness_set(&data->led_mute,
++						  data->saved_led_mute_brightness);
++		if (data->saved_led_micmute_brightness)
++			lenovo_led_brightness_set(&data->led_micmute,
++						  data->saved_led_micmute_brightness);
++	}
++
++	return 0;
++}
++
+ static int lenovo_reset_resume(struct hid_device *hdev)
+ {
+ 	switch (hdev->product) {
+@@ -1571,6 +1615,8 @@ static struct hid_driver lenovo_driver = {
+ 	.event = lenovo_event,
+ 	.report_fixup = lenovo_report_fixup,
+ #ifdef CONFIG_PM
++	.suspend = lenovo_suspend,
++	.resume = lenovo_resume,
+ 	.reset_resume = lenovo_reset_resume,
+ #endif
+ };
+-- 
+2.51.0
+
