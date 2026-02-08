@@ -11,7 +11,7 @@ Each feature or fix is isolated in its own branch to keep changes modular and ea
 | Branch | Description | Status |
 | :--- | :--- | :--- |
 | **[camera](../camera)** | Patches for Camera functionality (OV02C10). | 🟢 **Stable** (Workaround)<br>Ideal Solution: Implement Hardware discharge in Rpmh regulator node. |
-| **[deepsleep](../deepsleep)** | Patches for Deep Sleep (Suspend/Resume). | 🚧 **Partially Stable**<br>Suspend drain is still relatively high compared to Windows.<br>Spurious wakes: Fixed. |
+| **[deepsleep](../deepsleep)** | Patches for Deep Sleep (Suspend/Resume). | 🟢 **Stable**<br>Suspend drain is still little high compared to Windows.<br>Spurious wakes: Fixed. |
 | **[sound](../sound)** | Patches for Audio support. | 🚧 **Partially Stable**<br>ADSP cannot be loaded (No support in upstream). |
 | **[wifi](../wifi)** | Patches for WiFi 5GHz and instability. | 🟢 **Stable** (Workaround)<br>Ideal solution: Fix the issue in mm subsystem. |
 | **[usb-c-display](../usb-c-display)** | Patches for USB-C DisplayPort (External Monitor) Hotplug. | 🟢 **Stable**<br>Not a workaround. |
