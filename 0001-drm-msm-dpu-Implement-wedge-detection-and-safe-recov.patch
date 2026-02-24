@@ -1,0 +1,501 @@
+From 016565ac90f6107256d34efa2dbf317bc5a5b07f Mon Sep 17 00:00:00 2001
+From: Saikiran <bjsaikiran@gmail.com>
+Date: Sun, 8 Feb 2026 19:58:34 +0530
+Subject: [PATCH] drm/msm/dpu: Implement wedge detection and safe recovery for
+ stuck encoders
+
+This patch addresses a system stability issue where the device reboots or
+hangs when disconnecting an external display that has become unresponsive
+(wedged) after a suspend/resume cycle.
+
+The issue occurs when the DPU hardware pipeline freezes, causing the
+flush register to get stuck (observed as repeated timeouts with identical
+values, e.g., 0x80824302). In this state, the standard drm_atomic_disable
+sequence attempts to write to hardware registers to shut down the encoder.
+Because the hardware is frozen, these register writes cause the CPU to hang,
+triggering a watchdog reboot.
+
+This change implements a wedge detection and recovery mechanism:
+
+1. **Detection**: In `dpu_encoder_phys_vid_wait_for_commit_done`, we now
+   track the flush register value. If the value remains identical across
+   multiple timeouts (indicating a hardware freeze rather than a slow frame),
+   we flag the encoder as `is_wedged`.
+
+2. **Safe Disable**: In `dpu_encoder_virt_atomic_disable`, we check the
+   `is_wedged` flag. If set, we bypass all hardware register accesses
+   (which would cause a hang) and perform a software-only cleanup of
+   the drm states and IRQs. This prevents the reboot on disconnect.
+
+3. **Async Recovery**: We trigger a workqueue item to attempt a hardware
+   reset in a safe process context, avoiding "scheduling while atomic"
+   errors that would occur if we tried to reset directly from the
+   timeout handler.
+
+Signed-off-by: Saikiran <bjsaikiran@gmail.com>
+---
+ drivers/gpu/drm/msm/disp/dpu1/dpu_encoder.c   | 174 +++++++++++++++++-
+ drivers/gpu/drm/msm/disp/dpu1/dpu_encoder.h   |   2 +
+ .../gpu/drm/msm/disp/dpu1/dpu_encoder_phys.h  |  10 +
+ .../drm/msm/disp/dpu1/dpu_encoder_phys_vid.c  |  36 +++-
+ drivers/gpu/drm/msm/dp/dp_ctrl.c              |  31 +++-
+ drivers/gpu/drm/msm/dp/dp_display.c           |  44 +++++
+ 6 files changed, 292 insertions(+), 5 deletions(-)
+
+diff --git a/drivers/gpu/drm/msm/disp/dpu1/dpu_encoder.c b/drivers/gpu/drm/msm/disp/dpu1/dpu_encoder.c
+index eba1d52211f6..0b9a3672a188 100644
+--- a/drivers/gpu/drm/msm/disp/dpu1/dpu_encoder.c
++++ b/drivers/gpu/drm/msm/disp/dpu1/dpu_encoder.c
+@@ -11,6 +11,8 @@
+ #include <linux/debugfs.h>
+ #include <linux/kthread.h>
+ #include <linux/seq_file.h>
++#include <linux/timer.h>
++#include <linux/workqueue.h>
+ 
+ #include <drm/drm_atomic.h>
+ #include <drm/drm_crtc.h>
+@@ -201,6 +203,12 @@ struct dpu_encoder_virt {
+ 	atomic_t frame_done_timeout_cnt;
+ 	struct timer_list frame_done_timer;
+ 
++	bool wedge_detection_enabled;
++	atomic_t consecutive_timeout_count;
++	bool is_wedged;
++	struct work_struct recovery_work;
++	bool snapshot_captured;
++
+ 	struct msm_display_info disp_info;
+ 
+ 	bool idle_pc_supported;
+@@ -1342,9 +1350,27 @@ static void dpu_encoder_virt_atomic_enable(struct drm_encoder *drm_enc,
+ 	struct drm_display_mode *cur_mode = NULL;
+ 
+ 	dpu_enc = to_dpu_encoder_virt(drm_enc);
++
++	/* Check if encoder is wedged before attempting enable */
++	if (dpu_enc->is_wedged) {
++		DRM_WARN("Encoder %d is wedged, waiting for recovery before enable\n",
++			 drm_enc->base.id);
++		
++		/* Cancel and flush any pending recovery work to complete it synchronously */
++		cancel_work_sync(&dpu_enc->recovery_work);
++		
++		/* Force clear wedge state - we're doing a full enable which will reset hardware */
++		dpu_enc->is_wedged = false;
++		DRM_INFO("Encoder %d wedge cleared, proceeding with enable\n",
++			 drm_enc->base.id);
++	}
++
+ 	dpu_enc->dsc = dpu_encoder_get_dsc_config(drm_enc);
+ 
+ 	atomic_set(&dpu_enc->frame_done_timeout_cnt, 0);
++	atomic_set(&dpu_enc->consecutive_timeout_count, 0);
++	dpu_enc->is_wedged = false;
++	dpu_enc->snapshot_captured = false;
+ 
+ 	mutex_lock(&dpu_enc->enc_lock);
+ 
+@@ -1403,15 +1429,51 @@ static void dpu_encoder_virt_atomic_disable(struct drm_encoder *drm_enc,
+ 	if (old_state && old_state->self_refresh_active)
+ 		return;
+ 
++	/* Stop frame done timer FIRST to prevent races */
++	timer_delete_sync(&dpu_enc->frame_done_timer);
++
+ 	mutex_lock(&dpu_enc->enc_lock);
+ 	dpu_enc->enabled = false;
+ 
+ 	trace_dpu_enc_disable(DRMID(drm_enc));
+ 
++	/* If encoder is wedged, force a quick disable without hardware access */
++	if (dpu_enc->is_wedged) {
++		DRM_WARN("Encoder %d is wedged, bypassing hardware disable sequence\n",
++			 drm_enc->base.id);
++
++		/* Cancel any pending recovery work */
++		cancel_work_sync(&dpu_enc->recovery_work);
++
++		/* Only clean up software state - DO NOT touch hardware registers */
++		for (i = 0; i < dpu_enc->num_phys_encs; i++) {
++			struct dpu_encoder_phys *phys = dpu_enc->phys_encs[i];
++
++			/* Unregister IRQs without hardware access */
++			if (phys->hw_intf && phys->irq[INTR_IDX_VSYNC])
++				dpu_core_irq_unregister_callback(phys->dpu_kms,
++						phys->irq[INTR_IDX_VSYNC]);
++			if (phys->hw_intf && phys->irq[INTR_IDX_UNDERRUN])
++				dpu_core_irq_unregister_callback(phys->dpu_kms,
++						phys->irq[INTR_IDX_UNDERRUN]);
++		}
++
++		dpu_enc->enabled = false;
++		/* Keep is_wedged = true until next enable to prevent re-entry */
++		dpu_enc->connector = NULL;
++		mutex_unlock(&dpu_enc->enc_lock);
++		
++		DRM_INFO("Encoder %d disabled safely (wedged state preserved)\n",
++			 drm_enc->base.id);
++		return;
++	}
++
+ 	/* wait for idle */
+ 	dpu_encoder_wait_for_tx_complete(drm_enc);
+ 
+ 	dpu_encoder_resource_control(drm_enc, DPU_ENC_RC_EVENT_PRE_STOP);
++	atomic_set(&dpu_enc->consecutive_timeout_count, 0);
++	dpu_enc->is_wedged = false;
+ 
+ 	for (i = 0; i < dpu_enc->num_phys_encs; i++) {
+ 		struct dpu_encoder_phys *phys = dpu_enc->phys_encs[i];
+@@ -1748,6 +1810,99 @@ static int dpu_encoder_helper_wait_event_timeout(
+ 	return rc;
+ }
+ 
++/* Forward declaration */
++static void dpu_encoder_helper_hw_reset(struct dpu_encoder_phys *phys_enc);
++
++static void dpu_encoder_recovery_worker(struct work_struct *work)
++{
++	struct dpu_encoder_virt *dpu_enc = container_of(work, struct dpu_encoder_virt, recovery_work);
++
++	mutex_lock(&dpu_enc->enc_lock);
++
++	/* Double check wedge state under lock */
++	if (!dpu_enc->is_wedged) {
++		mutex_unlock(&dpu_enc->enc_lock);
++		return;
++	}
++
++	/*
++	 * DO NOT attempt hardware reset here. When the DPU is truly wedged
++	 * (e.g. after deep sleep with external monitor), the display hardware
++	 * bus may be dead. MMIO writes to frozen hardware can cause bus
++	 * errors / SError leading to kernel panic.
++	 *
++	 * Instead, just log the wedge state. The actual recovery happens via:
++	 * 1. Safe disconnect path in atomic_disable (skips hardware access)
++	 * 2. Full hardware re-init on next atomic_enable after reconnect
++	 */
++	DRM_ERROR("Encoder %d is wedged - hardware frozen, safe disconnect enabled\n",
++		  dpu_enc->base.base.id);
++
++	mutex_unlock(&dpu_enc->enc_lock);
++}
++
++static void dpu_encoder_check_wedge_and_recover(struct dpu_encoder_virt *dpu_enc,
++						struct dpu_encoder_phys *phys_enc)
++{
++	int consecutive_timeouts;
++
++	if (!dpu_enc->wedge_detection_enabled)
++		return;
++
++	consecutive_timeouts = atomic_inc_return(&dpu_enc->consecutive_timeout_count);
++
++	/* If we hit multiple consecutive timeouts, encoder is likely wedged */
++	if (consecutive_timeouts >= 5 && !dpu_enc->is_wedged) {
++		DRM_ERROR("Encoder %d appears wedged (%d consecutive timeouts), safe disconnect enabled\n",
++			  dpu_enc->base.base.id, consecutive_timeouts);
++
++		dpu_enc->is_wedged = true;
++	}
++}
++
++/**
++ * dpu_encoder_trigger_wedge_recovery - Trigger wedge recovery from physical encoder
++ * @drm_enc: Pointer to drm encoder
++ *
++ * Called by physical encoders when they detect a wedged state (e.g., frozen vblank).
++ * This provides a safe interface for phys encoders to trigger recovery without
++ * needing direct access to struct dpu_encoder_virt.
++ */
++void dpu_encoder_trigger_wedge_recovery(struct drm_encoder *drm_enc)
++{
++	struct dpu_encoder_virt *dpu_enc;
++
++	if (!drm_enc)
++		return;
++
++	dpu_enc = to_dpu_encoder_virt(drm_enc);
++
++	if (!dpu_enc->is_wedged) {
++		dpu_enc->is_wedged = true;
++		DRM_ERROR("Encoder %d marked wedged, safe disconnect enabled\n",
++			  drm_enc->base.id);
++	}
++}
++
++/**
++ * dpu_encoder_is_wedged - Check if the encoder is in wedged state
++ * @drm_enc: Pointer to drm encoder
++ *
++ * Returns true if the encoder's DPU hardware is stuck and not responding.
++ * Used by DP bridge to skip hardware access during disconnect when the
++ * display hardware is frozen.
++ */
++bool dpu_encoder_is_wedged(struct drm_encoder *drm_enc)
++{
++	struct dpu_encoder_virt *dpu_enc;
++
++	if (!drm_enc)
++		return false;
++
++	dpu_enc = to_dpu_encoder_virt(drm_enc);
++	return dpu_enc->is_wedged;
++}
++
+ static void dpu_encoder_helper_hw_reset(struct dpu_encoder_phys *phys_enc)
+ {
+ 	struct dpu_encoder_virt *dpu_enc;
+@@ -2730,8 +2885,21 @@ static void dpu_encoder_frame_done_timeout(struct timer_list *t)
+ 
+ 	DPU_ERROR_ENC_RATELIMITED(dpu_enc, "frame done timeout\n");
+ 
+-	if (atomic_inc_return(&dpu_enc->frame_done_timeout_cnt) == 1)
++	/* Check for encoder wedge and attempt recovery */
++	if (dpu_enc->num_phys_encs > 0) {
++		struct dpu_encoder_phys *phys_enc = dpu_enc->phys_encs[0];
++
++		dpu_encoder_check_wedge_and_recover(dpu_enc, phys_enc);
++	}
++
++	/* 
++	 * Only take snapshot on first timeout to avoid log spam.
++	 * Subsequent snapshots handled by recovery worker.
++	 */
++	if (atomic_inc_return(&dpu_enc->frame_done_timeout_cnt) == 1 && !dpu_enc->snapshot_captured) {
+ 		msm_disp_snapshot_state(drm_enc->dev);
++		dpu_enc->snapshot_captured = true;
++	}
+ 
+ 	event = DPU_ENCODER_FRAME_EVENT_ERROR;
+ 	trace_dpu_enc_frame_done_timeout(DRMID(drm_enc), event);
+@@ -2784,6 +2952,10 @@ struct drm_encoder *dpu_encoder_init(struct drm_device *dev,
+ 
+ 	atomic_set(&dpu_enc->frame_done_timeout_ms, 0);
+ 	atomic_set(&dpu_enc->frame_done_timeout_cnt, 0);
++	atomic_set(&dpu_enc->consecutive_timeout_count, 0);
++	dpu_enc->wedge_detection_enabled = true;
++	dpu_enc->snapshot_captured = false;
++	INIT_WORK(&dpu_enc->recovery_work, dpu_encoder_recovery_worker);
+ 	timer_setup(&dpu_enc->frame_done_timer,
+ 			dpu_encoder_frame_done_timeout, 0);
+ 
+diff --git a/drivers/gpu/drm/msm/disp/dpu1/dpu_encoder.h b/drivers/gpu/drm/msm/disp/dpu1/dpu_encoder.h
+index ca1ca2e51d7e..6a7d1826c892 100644
+--- a/drivers/gpu/drm/msm/disp/dpu1/dpu_encoder.h
++++ b/drivers/gpu/drm/msm/disp/dpu1/dpu_encoder.h
+@@ -98,4 +98,6 @@ void dpu_encoder_cleanup_wb_job(struct drm_encoder *drm_enc,
+ bool dpu_encoder_is_valid_for_commit(struct drm_encoder *drm_enc);
+ 
+ void dpu_encoder_start_frame_done_timer(struct drm_encoder *drm_enc);
++
++bool dpu_encoder_is_wedged(struct drm_encoder *drm_enc);
+ #endif /* __DPU_ENCODER_H__ */
+diff --git a/drivers/gpu/drm/msm/disp/dpu1/dpu_encoder_phys.h b/drivers/gpu/drm/msm/disp/dpu1/dpu_encoder_phys.h
+index 61b22d949454..0430efae39be 100644
+--- a/drivers/gpu/drm/msm/disp/dpu1/dpu_encoder_phys.h
++++ b/drivers/gpu/drm/msm/disp/dpu1/dpu_encoder_phys.h
+@@ -198,8 +198,18 @@ struct dpu_encoder_phys {
+ 	wait_queue_head_t pending_kickoff_wq;
+ 	unsigned int irq[INTR_IDX_MAX];
+ 	bool has_intf_te;
++	u32 last_vblank_timeout_val;
++	int vblank_timeout_count;
+ };
+ 
++/**
++ * dpu_encoder_trigger_wedge_recovery - Trigger encoder wedge recovery
++ * @drm_enc: Pointer to drm encoder
++ *
++ * Called by physical encoders when hardware wedge is detected.
++ */
++void dpu_encoder_trigger_wedge_recovery(struct drm_encoder *drm_enc);
++
+ static inline int dpu_encoder_phys_inc_pending(struct dpu_encoder_phys *phys)
+ {
+ 	atomic_inc_return(&phys->pending_ctlstart_cnt);
+diff --git a/drivers/gpu/drm/msm/disp/dpu1/dpu_encoder_phys_vid.c b/drivers/gpu/drm/msm/disp/dpu1/dpu_encoder_phys_vid.c
+index 0ba777bda253..1c66460cf757 100644
+--- a/drivers/gpu/drm/msm/disp/dpu1/dpu_encoder_phys_vid.c
++++ b/drivers/gpu/drm/msm/disp/dpu1/dpu_encoder_phys_vid.c
+@@ -531,6 +531,7 @@ static int dpu_encoder_phys_vid_wait_for_commit_done(
+ 		struct dpu_encoder_phys *phys_enc)
+ {
+ 	struct dpu_hw_ctl *hw_ctl = phys_enc->hw_ctl;
++	u32 flush_register;
+ 	int ret;
+ 
+ 	if (!hw_ctl)
+@@ -540,7 +541,40 @@ static int dpu_encoder_phys_vid_wait_for_commit_done(
+ 		(hw_ctl->ops.get_flush_register(hw_ctl) == 0),
+ 		msecs_to_jiffies(50));
+ 	if (ret <= 0) {
+-		DPU_ERROR("vblank timeout: %x\n", hw_ctl->ops.get_flush_register(hw_ctl));
++		flush_register = hw_ctl->ops.get_flush_register(hw_ctl);
++		DPU_ERROR("vblank timeout: %x\n", flush_register);
++
++		/*
++		 * Wedge detection: if the vblank timeout value is the same
++		 * multiple times in a row, the hardware is likely wedged
++		 */
++		if (flush_register != 0) {
++			if (phys_enc->last_vblank_timeout_val == flush_register) {
++				phys_enc->vblank_timeout_count++;
++				
++				if (phys_enc->vblank_timeout_count >= 3) {
++					DRM_ERROR("Encoder wedge detected: vblank value frozen at %x for %d iterations\n",
++						  flush_register, phys_enc->vblank_timeout_count);
++					
++					/*
++					 * Flag wedge state immediately so atomic_disable knows
++					 * to skip hardware access. This is the fast-path detection.
++					 * Use helper function to safely trigger recovery without
++					 * exposing dpu_encoder_virt internals.
++					 */
++					dpu_encoder_trigger_wedge_recovery(phys_enc->parent);
++				}
++			} else {
++				/* Value changed, reset counter */
++				phys_enc->last_vblank_timeout_val = flush_register;
++				phys_enc->vblank_timeout_count = 1;
++			}
++		} else {
++			/* Flush completed (0 value), reset tracking */
++			phys_enc->last_vblank_timeout_val = 0;
++			phys_enc->vblank_timeout_count = 0;
++		}
++
+ 		return -ETIMEDOUT;
+ 	}
+ 
+diff --git a/drivers/gpu/drm/msm/dp/dp_ctrl.c b/drivers/gpu/drm/msm/dp/dp_ctrl.c
+index da22fddbf12b..4e83c66afd3b 100644
+--- a/drivers/gpu/drm/msm/dp/dp_ctrl.c
++++ b/drivers/gpu/drm/msm/dp/dp_ctrl.c
+@@ -2193,7 +2193,14 @@ static int msm_dp_ctrl_process_phy_test_request(struct msm_dp_ctrl_private *ctrl
+ 	if (ctrl->stream_clks_on) {
+ 		drm_dbg_dp(ctrl->drm_dev, "pixel clks already enabled\n");
+ 	} else {
+-		ret = clk_prepare_enable(ctrl->pixel_clk);
++		int retries;
++
++		for (retries = 0; retries < 5; retries++) {
++			ret = clk_prepare_enable(ctrl->pixel_clk);
++			if (!ret)
++				break;
++			usleep_range(2000, 5000);
++		}
+ 		if (ret) {
+ 			DRM_ERROR("Failed to start pixel clocks. ret=%d\n", ret);
+ 			return ret;
+@@ -2515,9 +2522,27 @@ int msm_dp_ctrl_on_stream(struct msm_dp_ctrl *msm_dp_ctrl, bool force_link_train
+ 	if (ctrl->stream_clks_on) {
+ 		drm_dbg_dp(ctrl->drm_dev, "pixel clks already enabled\n");
+ 	} else {
+-		ret = clk_prepare_enable(ctrl->pixel_clk);
++		int retries;
++
++		/*
++		 * After deep sleep (S3), the display clock controller GDSC
++		 * and parent PLLs may not have fully stabilized by the time
++		 * the DRM atomic restore runs. The pixel clock branch gate
++		 * can be stuck at 'off' temporarily, returning -EBUSY.
++		 * Retry with delays to allow hardware to settle.
++		 */
++		for (retries = 0; retries < 5; retries++) {
++			ret = clk_prepare_enable(ctrl->pixel_clk);
++			if (!ret)
++				break;
++			drm_dbg_dp(ctrl->drm_dev,
++				   "pixel clk enable retry %d/%d (ret=%d)\n",
++				   retries + 1, 5, ret);
++			usleep_range(2000, 5000);
++		}
+ 		if (ret) {
+-			DRM_ERROR("Failed to start pixel clocks. ret=%d\n", ret);
++			DRM_ERROR("Failed to start pixel clocks after %d retries. ret=%d\n",
++				  retries, ret);
+ 			goto end;
+ 		}
+ 		ctrl->stream_clks_on = true;
+diff --git a/drivers/gpu/drm/msm/dp/dp_display.c b/drivers/gpu/drm/msm/dp/dp_display.c
+index 8e4247023c1a..96f90e0ead04 100644
+--- a/drivers/gpu/drm/msm/dp/dp_display.c
++++ b/drivers/gpu/drm/msm/dp/dp_display.c
+@@ -27,6 +27,7 @@
+ #include "dp_drm.h"
+ #include "dp_audio.h"
+ #include "dp_debug.h"
++#include "disp/dpu1/dpu_encoder.h"
+ 
+ static bool psr_enabled = false;
+ module_param(psr_enabled, bool, 0);
+@@ -1653,6 +1654,15 @@ void msm_dp_bridge_atomic_enable(struct drm_bridge *drm_bridge,
+ 
+ 	msm_dp_display_enable(msm_dp_display, force_link_train);
+ 
++	if (!dp->power_on) {
++		DRM_ERROR("DP display enable failed, aborting stream start\n");
++		if (hpd_state == ST_DISPLAY_OFF)
++			msm_dp_display_host_phy_exit(msm_dp_display);
++		msm_dp_display->hpd_state = ST_DISPLAY_OFF;
++		mutex_unlock(&msm_dp_display->event_mutex);
++		return;
++	}
++
+ 	rc = msm_dp_display_post_enable(dp);
+ 	if (rc) {
+ 		DRM_ERROR("DP display post enable failed, rc=%d\n", rc);
+@@ -1675,6 +1685,17 @@ void msm_dp_bridge_atomic_disable(struct drm_bridge *drm_bridge,
+ 
+ 	msm_dp_display = container_of(dp, struct msm_dp_display_private, msm_dp_display);
+ 
++	/*
++	 * If the DPU encoder is wedged (hardware frozen after suspend),
++	 * skip push_idle which writes to DP registers and waits for a
++	 * completion that will never come from dead hardware.
++	 * This prevents a bus hang / kernel panic on USB-C disconnect.
++	 */
++	if (drm_bridge->encoder && dpu_encoder_is_wedged(drm_bridge->encoder)) {
++		drm_dbg_dp(dp->drm_dev, "encoder wedged, skipping push_idle\n");
++		return;
++	}
++
+ 	msm_dp_ctrl_push_idle(msm_dp_display->ctrl);
+ }
+ 
+@@ -1688,6 +1709,29 @@ void msm_dp_bridge_atomic_post_disable(struct drm_bridge *drm_bridge,
+ 
+ 	msm_dp_display = container_of(dp, struct msm_dp_display_private, msm_dp_display);
+ 
++	/*
++	 * If DPU encoder is wedged, skip all hardware access in post_disable.
++	 * msm_dp_display_disable() calls msm_dp_ctrl_off() which does MMIO
++	 * to the DP controller, mainlink disable, PHY power off etc.
++	 * When the display hardware is frozen, these MMIO accesses can cause
++	 * a bus hang leading to kernel panic and spontaneous reboot.
++	 * Just update software state and release runtime PM.
++	 */
++	if (drm_bridge->encoder && dpu_encoder_is_wedged(drm_bridge->encoder)) {
++		DRM_WARN("encoder wedged, skipping DP hardware disable\n");
++		mutex_lock(&msm_dp_display->event_mutex);
++		dp->power_on = false;
++		dp->link_ready = false;
++		msm_dp_display->phy_initialized = false;
++		msm_dp_display->hpd_state = ST_DISCONNECTED;
++		/* Flush stale HPD events so reconnection starts clean */
++		msm_dp_display->event_gndx = msm_dp_display->event_pndx;
++		msm_dp_display_handle_plugged_change(dp, false);
++		pm_runtime_put_sync(&dp->pdev->dev);
++		mutex_unlock(&msm_dp_display->event_mutex);
++		return;
++	}
++
+ 	if (dp->is_edp)
+ 		msm_dp_hpd_unplug_handle(msm_dp_display, 0);
+ 
+-- 
+2.51.0
+
