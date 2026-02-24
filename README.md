@@ -14,7 +14,7 @@ Each feature or fix is isolated in its own branch to keep changes modular and ea
 | **[deepsleep](../deepsleep)** | Patches for Deep Sleep (Suspend/Resume). | 🟢 **Stable**<br>Suspend drain is still little high compared to Windows.<br>Spurious wakes: Fixed. |
 | **[sound](../sound)** | Patches for Audio support. | 🚧 **Partially Stable**<br>ADSP cannot be loaded (No support in upstream). |
 | **[wifi](../wifi)** | Patches for WiFi 5GHz and instability. | 🟢 **Stable** (Workaround)<br>Ideal solution: Fix the issue in mm subsystem. |
-| **[usb-c-display](../usb-c-display)** | Patches for USB-C DisplayPort (External Monitor) Hotplug. | 🟢 **Stable**<br>Not a workaround. |
+| **[usb-c-display](../usb-c-display)** | Patches for USB-C DisplayPort (External Monitor) vblank value struck after long suspend. | 🚧 **Partially Stable** |
 
 ## Test Setup
 
@@ -22,7 +22,7 @@ These patches have been developed and tested on the following configuration:
 
 - **Device:** Lenovo Yoga Slim 7x (14Q8X9)
 - **Variant:** 16GB RAM / 512GB SSD
-- **Kernel Version:** 6.19-rc8
+- **Kernel Version:** 7.0-rc1
 
 ## Usage
 
