@@ -38,5 +38,5 @@ git am /path/to/patches/*.patch
 ```
 
 ## Tested On
-- Kernel Version: **6.19-rc8**
+- Kernel Version: **7.0-rc1**
 - **Hardware:** Lenovo Yoga Slim 7x (Snapdragon X Elite)

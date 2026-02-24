@@ -1,4 +1,4 @@
-From f7f37727d1a250cd2fcc520359724157b956448a Mon Sep 17 00:00:00 2001
+From 5a8f280932532b72b712d0da899249d8155e4b44 Mon Sep 17 00:00:00 2001
 From: Saikiran <bjsaikiran@gmail.com>
 Date: Thu, 5 Feb 2026 10:29:17 +0530
 Subject: [PATCH 1/3] HID: lenovo: Add suspend/resume to turn off LEDs during
@@ -16,7 +16,7 @@ Signed-off-by: Saikiran <bjsaikiran@gmail.com>
  1 file changed, 46 insertions(+)
 
 diff --git a/drivers/hid/hid-lenovo.c b/drivers/hid/hid-lenovo.c
-index 9cc3e029e9f6..1fb6ed48ca8c 100644
+index a6b73e03c16b..05ca2c82fb85 100644
 --- a/drivers/hid/hid-lenovo.c
 +++ b/drivers/hid/hid-lenovo.c
 @@ -48,6 +48,8 @@ struct lenovo_drvdata {
@@ -28,10 +28,10 @@ index 9cc3e029e9f6..1fb6ed48ca8c 100644
  	struct led_classdev led_mute;
  	struct led_classdev led_micmute;
  	struct work_struct fn_lock_sync_work;
-@@ -1423,6 +1425,48 @@ static int lenovo_probe(struct hid_device *hdev,
+@@ -1422,6 +1424,48 @@ static int lenovo_probe(struct hid_device *hdev,
+ 	return ret;
  }
  
- #ifdef CONFIG_PM
 +static int lenovo_suspend(struct hid_device *hdev, pm_message_t message)
 +{
 +	struct lenovo_drvdata *data = hid_get_drvdata(hdev);
@@ -77,15 +77,15 @@ index 9cc3e029e9f6..1fb6ed48ca8c 100644
  static int lenovo_reset_resume(struct hid_device *hdev)
  {
  	switch (hdev->product) {
-@@ -1571,6 +1615,8 @@ static struct hid_driver lenovo_driver = {
+@@ -1569,6 +1613,8 @@ static struct hid_driver lenovo_driver = {
  	.event = lenovo_event,
  	.report_fixup = lenovo_report_fixup,
- #ifdef CONFIG_PM
-+	.suspend = lenovo_suspend,
-+	.resume = lenovo_resume,
- 	.reset_resume = lenovo_reset_resume,
- #endif
+ 	.reset_resume = pm_ptr(lenovo_reset_resume),
++	.suspend = pm_ptr(lenovo_suspend),
++	.resume = pm_ptr(lenovo_resume),
  };
+ module_hid_driver(lenovo_driver);
+ 
 -- 
 2.51.0
 
