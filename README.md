@@ -1,9 +1,9 @@
 # USB-C DisplayPort Hotplug Fix
 
-This branch contains a patch to fix USB-C DisplayPort hotplug functionality on the Lenovo Yoga Slim 7x.
+This branch contains a patch to fix USB-C DisplayPort Wedge kernel panic on the Lenovo Yoga Slim 7x.
 
 ## Description
-Fixes crashes or failures when hotplugging an external monitor via USB-C after long suspend.
+Fixes kernel crash when hotplugging an external monitor via USB-C after long suspend.
 
 ## Exact issue
 1. Suspend the device for more than 10 minutes while an external monitor is connected.
@@ -13,7 +13,7 @@ Fixes crashes or failures when hotplugging an external monitor via USB-C after l
 5. The device will reboot.
 
 ## Patch Details
-- **File**: `0001-drm-msm-dp-Fix-USB-C-DisplayPort-hotplug-crash-after.patch`
+- **File**: `0001-drm-msm-dpu-Implement-wedge-detection-and-safe-recov.patch`
 
 ## Instructions
 
@@ -21,8 +21,8 @@ Apply the patch directly to your kernel source:
 
 ```bash
 cd /path/to/kernel/source
-git am < /path/to/patches/0001-drm-msm-dp-Fix-USB-C-DisplayPort-hotplug-crash-after.patch
+git am < /path/to/patches/0001-drm-msm-dpu-Implement-wedge-detection-and-safe-recov.patch
 ```
 
 ## Tested On
-- Kernel Version: **6.19-rc8**
+- Kernel Version: **7.0-rc1**
