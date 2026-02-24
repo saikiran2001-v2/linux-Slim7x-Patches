@@ -80,6 +80,6 @@ git am < /path/to/patches/0001-wifi-ath12k-fix-CMA-error-and-MHI-state-mismatch.
 ```
 
 ## Tested On
-- Kernel Version: **6.19-rc8**
+- Kernel Version: **7.0-rc1**
 - **Hardware:** Lenovo Yoga Slim 7x (Snapdragon X Elite)
 - **WiFi:** WCN7850 hw2.0 PCI
