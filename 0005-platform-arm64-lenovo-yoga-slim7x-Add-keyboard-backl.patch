@@ -1,7 +1,7 @@
-From 7cbe8cd2d0782e579ec08aebba19a8874d818023 Mon Sep 17 00:00:00 2001
+From 418d7dad4284180f2f17159d9f63f571cebe003d Mon Sep 17 00:00:00 2001
 From: Saikiran <bjsaikiran@gmail.com>
 Date: Thu, 5 Feb 2026 10:52:11 +0530
-Subject: [PATCH 3/3] platform/arm64: lenovo-yoga-slim7x: Add keyboard
+Subject: [PATCH 5/5] platform/arm64: lenovo-yoga-slim7x: Add keyboard
  backlight control during suspend
 
 - Save and restore keyboard backlight state across suspend/resume
@@ -107,5 +107,5 @@ index 8f6d523395bc..1487f92dcf3c 100644
  }
  
 -- 
-2.51.0
+2.55.0
 

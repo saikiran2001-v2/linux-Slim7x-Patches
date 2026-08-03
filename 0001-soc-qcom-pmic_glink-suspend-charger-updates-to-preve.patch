@@ -1,7 +1,7 @@
-From d56134a5d20d6d85975d8d239d8d9d244e021268 Mon Sep 17 00:00:00 2001
+From 2354adc63e8ddd62ef86c9272084ed4d2974c37d Mon Sep 17 00:00:00 2001
 From: Saikiran <bjsaikiran@gmail.com>
 Date: Thu, 29 Jan 2026 12:38:33 +0530
-Subject: [PATCH] soc: qcom: pmic_glink: suspend charger updates to prevent
+Subject: [PATCH 1/5] soc: qcom: pmic_glink: suspend charger updates to prevent
  s2idle wakeups
 
 When a charger is connected, the PMIC sends frequent updates via GLINK for
@@ -20,7 +20,7 @@ This isolates and fixes the root cause of 'charger connected' wakeups.
  1 file changed, 40 insertions(+)
 
 diff --git a/drivers/soc/qcom/pmic_glink.c b/drivers/soc/qcom/pmic_glink.c
-index c073d7e2ede6..bf3235621e1e 100644
+index dd31ae609f74..671f1efc4f08 100644
 --- a/drivers/soc/qcom/pmic_glink.c
 +++ b/drivers/soc/qcom/pmic_glink.c
 @@ -14,6 +14,7 @@
@@ -31,7 +31,7 @@ index c073d7e2ede6..bf3235621e1e 100644
  
  #define PMIC_GLINK_SEND_TIMEOUT (5 * HZ)
  
-@@ -39,6 +40,7 @@ struct pmic_glink {
+@@ -45,6 +46,7 @@ struct pmic_glink {
  	struct mutex state_lock;
  	unsigned int client_state;
  	unsigned int pdr_state;
@@ -39,7 +39,7 @@ index c073d7e2ede6..bf3235621e1e 100644
  	bool pdr_available;
  
  	/* serializing clients list updates */
-@@ -151,6 +153,16 @@ static int pmic_glink_rpmsg_callback(struct rpmsg_device *rpdev, void *data,
+@@ -157,6 +159,16 @@ static int pmic_glink_rpmsg_callback(struct rpmsg_device *rpdev, void *data,
  	struct pmic_glink *pg = dev_get_drvdata(&rpdev->dev);
  	unsigned long flags;
  
@@ -56,7 +56,7 @@ index c073d7e2ede6..bf3235621e1e 100644
  	if (len < sizeof(*hdr)) {
  		dev_warn(pg->dev, "ignoring truncated message\n");
  		return 0;
-@@ -405,12 +417,40 @@ static const struct of_device_id pmic_glink_of_match[] = {
+@@ -423,12 +435,40 @@ static const struct of_device_id pmic_glink_of_match[] = {
  };
  MODULE_DEVICE_TABLE(of, pmic_glink_of_match);
  
@@ -98,5 +98,5 @@ index c073d7e2ede6..bf3235621e1e 100644
  };
  module_platform_driver(pmic_glink_driver);
 -- 
-2.51.0
+2.55.0
 
