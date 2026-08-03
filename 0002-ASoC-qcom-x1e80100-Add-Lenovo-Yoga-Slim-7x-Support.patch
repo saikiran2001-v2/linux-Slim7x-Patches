@@ -1,7 +1,7 @@
-From 765f069ede7f17d2eeeb4abe0773e1c977fd64ff Mon Sep 17 00:00:00 2001
+From afb49a1c173dfb356bb37679996105f60a70c70c Mon Sep 17 00:00:00 2001
 From: Saikiran <bjsaikiran@gmail.com>
 Date: Sun, 25 Jan 2026 11:29:43 +0530
-Subject: [PATCH 2/3] ASoC: qcom: x1e80100: Add Lenovo Yoga Slim 7x Support
+Subject: [PATCH 2/6] ASoC: qcom: x1e80100: Add Lenovo Yoga Slim 7x Support
 
 Add a dedicated compatible string and configuration for the Lenovo Yoga
 Slim 7x (Gen 9) sound card. This device uses a 4-speaker setup similar
@@ -19,7 +19,7 @@ Signed-off-by: Saikiran <bjsaikiran@gmail.com>
  2 files changed, 6 insertions(+), 1 deletion(-)
 
 diff --git a/arch/arm64/boot/dts/qcom/x1e80100-lenovo-yoga-slim7x.dts b/arch/arm64/boot/dts/qcom/x1e80100-lenovo-yoga-slim7x.dts
-index f1bfad1cb57d..8f1047ff2b0e 100644
+index 7167f26f6a6c..427b2825addb 100644
 --- a/arch/arm64/boot/dts/qcom/x1e80100-lenovo-yoga-slim7x.dts
 +++ b/arch/arm64/boot/dts/qcom/x1e80100-lenovo-yoga-slim7x.dts
 @@ -188,7 +188,7 @@ linux,cma {
@@ -32,10 +32,10 @@ index f1bfad1cb57d..8f1047ff2b0e 100644
  		audio-routing = "WooferLeft IN", "WSA WSA_SPK1 OUT",
  				"TweeterLeft IN", "WSA WSA_SPK2 OUT",
 diff --git a/sound/soc/qcom/x1e80100.c b/sound/soc/qcom/x1e80100.c
-index 2fde3cc07d5e..8be5b212ac91 100644
+index c92fe652f544..42e05b3466fe 100644
 --- a/sound/soc/qcom/x1e80100.c
 +++ b/sound/soc/qcom/x1e80100.c
-@@ -227,9 +227,14 @@ static const struct x1e80100_snd_cfg dell_xps13_9345_cfg = {
+@@ -246,9 +246,14 @@ static const struct x1e80100_snd_cfg dell_xps13_9345_cfg = {
  	.channels_num = ARRAY_SIZE(right_left_4_channels_map),
  };
  
@@ -51,5 +51,5 @@ index 2fde3cc07d5e..8be5b212ac91 100644
  	{}
  };
 -- 
-2.51.0
+2.55.0
 

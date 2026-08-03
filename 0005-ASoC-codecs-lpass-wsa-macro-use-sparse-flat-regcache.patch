@@ -1,0 +1,25 @@
+From 10423ea17c64a5c278d520569b9d93dfdcab4829 Mon Sep 17 00:00:00 2001
+From: Saikiran <bjsaikiran@gmail.com>
+Date: Sun, 2 Aug 2026 20:24:20 +0530
+Subject: [PATCH 5/6] ASoC: codecs: lpass-wsa-macro: use sparse flat regcache
+
+---
+ sound/soc/codecs/lpass-wsa-macro.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/sound/soc/codecs/lpass-wsa-macro.c b/sound/soc/codecs/lpass-wsa-macro.c
+index 8c8c50a63f4e..b3575e7702b0 100644
+--- a/sound/soc/codecs/lpass-wsa-macro.c
++++ b/sound/soc/codecs/lpass-wsa-macro.c
+@@ -1109,7 +1109,7 @@ static const struct regmap_config wsa_regmap_config = {
+ 	.reg_bits = 16,
+ 	.val_bits = 32, /* 8 but with 32 bit read/write */
+ 	.reg_stride = 4,
+-	.cache_type = REGCACHE_FLAT,
++	.cache_type = REGCACHE_FLAT_S,
+ 	/* .reg_defaults and .num_reg_defaults set in probe() */
+ 	.max_register = WSA_MAX_OFFSET,
+ 	.writeable_reg = wsa_is_writeable_register,
+-- 
+2.55.0
+
