@@ -1,4 +1,4 @@
-From b20b86ff3a7392d6e67f22cfe092b4fcc0aef612 Mon Sep 17 00:00:00 2001
+From 36710b4dab92d3b65ac72343f6ae02d145b3271f Mon Sep 17 00:00:00 2001
 From: Manivannan Sadhasivam <manivannan.sadhasivam@oss.qualcomm.com>
 Date: Mon, 25 Aug 2025 23:14:41 +0530
 Subject: [PATCH 1/2] wifi: ath12k: Use pci_{enable/disable}_link_state() APIs
@@ -35,10 +35,10 @@ index 4a2b240f967a..7852ede3eaea 100644
  	select MHI_BUS
  	select QRTR
 diff --git a/drivers/net/wireless/ath/ath12k/pci.c b/drivers/net/wireless/ath/ath12k/pci.c
-index d9a22d6afbb0..174bee80acbd 100644
+index fee4129ea405..041764dd1a77 100644
 --- a/drivers/net/wireless/ath/ath12k/pci.c
 +++ b/drivers/net/wireless/ath/ath12k/pci.c
-@@ -884,19 +884,9 @@ static void ath12k_pci_free_region(struct ath12k_pci *ab_pci)
+@@ -888,19 +888,9 @@ static void ath12k_pci_free_region(struct ath12k_pci *ab_pci)
  
  static void ath12k_pci_aspm_disable(struct ath12k_pci *ab_pci)
  {
@@ -60,7 +60,7 @@ index d9a22d6afbb0..174bee80acbd 100644
  
  	set_bit(ATH12K_PCI_ASPM_RESTORE, &ab_pci->flags);
  }
-@@ -925,10 +915,7 @@ static void ath12k_pci_aspm_restore(struct ath12k_pci *ab_pci)
+@@ -929,10 +919,7 @@ static void ath12k_pci_aspm_restore(struct ath12k_pci *ab_pci)
  {
  	if (ab_pci->ab->hw_params->supports_aspm &&
  	    test_and_clear_bit(ATH12K_PCI_ASPM_RESTORE, &ab_pci->flags))
@@ -87,6 +87,3 @@ index 0e0e2020c6ae..409ef063cd69 100644
  	unsigned long irq_flags;
  	const struct ath12k_pci_ops *pci_ops;
  	u32 qmi_instance;
--- 
-2.55.0
-

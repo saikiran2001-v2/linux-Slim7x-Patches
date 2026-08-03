@@ -1,4 +1,4 @@
-From bb2226ceb08ce4a0745ddf0b6038d953790bc410 Mon Sep 17 00:00:00 2001
+From 08815708898ba9607944b617972602775b2d8a86 Mon Sep 17 00:00:00 2001
 From: Saikiran <bjsaikiran@gmail.com>
 Date: Sun, 1 Feb 2026 23:34:47 +0530
 Subject: [PATCH 2/2] wifi: ath12k: fix CMA error and MHI state mismatch during
@@ -96,6 +96,3 @@ index ee87f00bc5de..cd339d64b978 100644
  }
  
  void ath12k_mhi_suspend(struct ath12k_pci *ab_pci)
--- 
-2.55.0
-
