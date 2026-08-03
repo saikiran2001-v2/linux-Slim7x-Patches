@@ -1,4 +1,4 @@
-From 6d6d8ad59bc8da13d77454c16f5c9b61b4336b23 Mon Sep 17 00:00:00 2001
+From a08bf6e017835bc4c711cc167872fef7bb7c930c Mon Sep 17 00:00:00 2001
 From: Saikiran <bjsaikiran@gmail.com>
 Date: Sun, 2 Aug 2026 22:20:43 +0530
 Subject: [PATCH 6/6] ASoC: codecs: lpass-wsa-macro: fix v2.5 speaker mode
@@ -48,6 +48,3 @@ index b3575e7702b0..1150c5bdf344 100644
  		snd_soc_component_update_bits(component, CDC_WSA_BOOST0_BOOST_CTL, 0x7C, 0x58);
  		snd_soc_component_update_bits(component, CDC_WSA_BOOST1_BOOST_CTL, 0x7C, 0x58);
  		break;
--- 
-2.55.0
-

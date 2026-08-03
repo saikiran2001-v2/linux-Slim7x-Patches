@@ -1,4 +1,4 @@
-From afb49a1c173dfb356bb37679996105f60a70c70c Mon Sep 17 00:00:00 2001
+From 2f2496ab9cc169a4eea7208c29a0385fafffe767 Mon Sep 17 00:00:00 2001
 From: Saikiran <bjsaikiran@gmail.com>
 Date: Sun, 25 Jan 2026 11:29:43 +0530
 Subject: [PATCH 2/6] ASoC: qcom: x1e80100: Add Lenovo Yoga Slim 7x Support
@@ -19,10 +19,10 @@ Signed-off-by: Saikiran <bjsaikiran@gmail.com>
  2 files changed, 6 insertions(+), 1 deletion(-)
 
 diff --git a/arch/arm64/boot/dts/qcom/x1e80100-lenovo-yoga-slim7x.dts b/arch/arm64/boot/dts/qcom/x1e80100-lenovo-yoga-slim7x.dts
-index 7167f26f6a6c..427b2825addb 100644
+index beb1475d7fa0..39bc52973d25 100644
 --- a/arch/arm64/boot/dts/qcom/x1e80100-lenovo-yoga-slim7x.dts
 +++ b/arch/arm64/boot/dts/qcom/x1e80100-lenovo-yoga-slim7x.dts
-@@ -188,7 +188,7 @@ linux,cma {
+@@ -172,7 +172,7 @@ linux,cma {
  	};
  
  	sound {
@@ -50,6 +50,3 @@ index c92fe652f544..42e05b3466fe 100644
  	{ .compatible = "qcom,glymur-sndcard", .data = &glymur_cfg, },
  	{}
  };
--- 
-2.55.0
-

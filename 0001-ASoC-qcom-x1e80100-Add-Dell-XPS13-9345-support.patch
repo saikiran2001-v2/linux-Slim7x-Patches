@@ -1,4 +1,4 @@
-From 1a0cc0be72ecec4f4fabff5ab64f3adbb20cb28f Mon Sep 17 00:00:00 2001
+From c5d7e9757126107576ce4d72bf484ec29a8b9cc6 Mon Sep 17 00:00:00 2001
 From: Abel Vesa <abel.vesa@linaro.org>
 Date: Tue, 21 Oct 2025 16:50:45 +0300
 Subject: [PATCH 1/6] ASoC: qcom: x1e80100: Add Dell XPS13 9345 support
@@ -108,6 +108,3 @@ index c81df41ace88..c92fe652f544 100644
  	{}
  };
  MODULE_DEVICE_TABLE(of, snd_x1e80100_dt_match);
--- 
-2.55.0
-

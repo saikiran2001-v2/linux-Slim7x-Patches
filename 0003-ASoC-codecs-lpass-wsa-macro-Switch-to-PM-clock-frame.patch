@@ -1,4 +1,4 @@
-From de26169b78fc700cf9aad99b21cf49c5418cead2 Mon Sep 17 00:00:00 2001
+From 775bb803f14179a7a3068f151c02efa7a82804cb Mon Sep 17 00:00:00 2001
 From: Ajay Kumar Nandam <ajay.nandam@oss.qualcomm.com>
 Date: Mon, 13 Apr 2026 17:48:22 +0530
 Subject: [PATCH 3/6] ASoC: codecs: lpass-wsa-macro: Switch to PM clock
@@ -215,6 +215,3 @@ index 5ad0448af649..6aa6c4d959c0 100644
  }
  
  static const struct dev_pm_ops wsa_macro_pm_ops = {
--- 
-2.55.0
-

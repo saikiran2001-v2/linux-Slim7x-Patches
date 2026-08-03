@@ -1,4 +1,4 @@
-From 10423ea17c64a5c278d520569b9d93dfdcab4829 Mon Sep 17 00:00:00 2001
+From e93e9c665036abb793867920fdce42024ce10b14 Mon Sep 17 00:00:00 2001
 From: Saikiran <bjsaikiran@gmail.com>
 Date: Sun, 2 Aug 2026 20:24:20 +0530
 Subject: [PATCH 5/6] ASoC: codecs: lpass-wsa-macro: use sparse flat regcache
@@ -20,6 +20,3 @@ index 8c8c50a63f4e..b3575e7702b0 100644
  	/* .reg_defaults and .num_reg_defaults set in probe() */
  	.max_register = WSA_MAX_OFFSET,
  	.writeable_reg = wsa_is_writeable_register,
--- 
-2.55.0
-

@@ -1,4 +1,4 @@
-From 5aa72e505c4e69d866227e1d4c4ffe2b54deacfa Mon Sep 17 00:00:00 2001
+From e538e52462a7198bc4b1cb32a346c80bb6ad49f0 Mon Sep 17 00:00:00 2001
 From: Ajay Kumar Nandam <ajay.nandam@oss.qualcomm.com>
 Date: Mon, 13 Apr 2026 17:48:24 +0530
 Subject: [PATCH 4/6] ASoC: codecs: lpass-wsa-macro: Guard optional NPL clock
@@ -31,6 +31,3 @@ index 6aa6c4d959c0..8c8c50a63f4e 100644
  
  	ret = devm_pm_clk_create(dev);
  	if (ret)
--- 
-2.55.0
-
