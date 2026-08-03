@@ -1,7 +1,7 @@
-From 128a70113d7ef110458c3604d3a19ba4277865a9 Mon Sep 17 00:00:00 2001
+From bb2226ceb08ce4a0745ddf0b6038d953790bc410 Mon Sep 17 00:00:00 2001
 From: Saikiran <bjsaikiran@gmail.com>
 Date: Sun, 1 Feb 2026 23:34:47 +0530
-Subject: [PATCH] wifi: ath12k: fix CMA error and MHI state mismatch during
+Subject: [PATCH 2/2] wifi: ath12k: fix CMA error and MHI state mismatch during
  resume
 
 Commit 8d5f4da8d70b ("wifi: ath12k: support suspend/resume") introduced
@@ -49,7 +49,7 @@ Signed-off-by: Saikiran <bjsaikiran@gmail.com>
  1 file changed, 17 insertions(+), 7 deletions(-)
 
 diff --git a/drivers/net/wireless/ath/ath12k/mhi.c b/drivers/net/wireless/ath/ath12k/mhi.c
-index 45c0f66dcc5e..1a0b3bcc6bbf 100644
+index ee87f00bc5de..cd339d64b978 100644
 --- a/drivers/net/wireless/ath/ath12k/mhi.c
 +++ b/drivers/net/wireless/ath/ath12k/mhi.c
 @@ -485,9 +485,14 @@ int ath12k_mhi_start(struct ath12k_pci *ab_pci)
@@ -97,5 +97,5 @@ index 45c0f66dcc5e..1a0b3bcc6bbf 100644
  
  void ath12k_mhi_suspend(struct ath12k_pci *ab_pci)
 -- 
-2.51.0
+2.55.0
 
