@@ -1,0 +1,45 @@
+From 7f85eb02cf8040bd1a93b3dd8e3ae8c67cdaf3a5 Mon Sep 17 00:00:00 2001
+From: Jens Glathe <jens.glathe@oldschoolsolutions.biz>
+Date: Tue, 2 Jun 2026 12:25:13 +0200
+Subject: [PATCH 6/11] drm/msm/dp: add missing drm_edid_connector_update()
+ before add_modes on cached EDID
+
+After commit 5bea90ad9743d2 ("drm/msm/dp: convert to struct drm_edid
+API"), the fast path in msm_dp_panel_get_modes() that already had an
+EDID in msm_dp_panel->drm_edid called drm_edid_connector_add_modes()
+directly.
+
+Unlike the old drm_add_edid_modes(connector, edid) interface, the new
+drm_edid_connector_add_modes() requires that drm_edid_connector_update()
+has been called first. Without it the connector has no registered EDID
+and zero modes are produced even when a valid EDID is present.
+
+Add the missing update() call. This restores correct behaviour for the
+cached-EDID path after the API conversion.
+
+Fixes: 5bea90ad9743d2 ("drm/msm/dp: switch to struct drm_edid")
+
+Signed-off-by: Jens Glathe <jens.glathe@oldschoolsolutions.biz>
+---
+ drivers/gpu/drm/msm/dp/dp_panel.c | 4 +++-
+ 1 file changed, 3 insertions(+), 1 deletion(-)
+
+diff --git a/drivers/gpu/drm/msm/dp/dp_panel.c b/drivers/gpu/drm/msm/dp/dp_panel.c
+index 6bb021820d7c..5b4954e7cb74 100644
+--- a/drivers/gpu/drm/msm/dp/dp_panel.c
++++ b/drivers/gpu/drm/msm/dp/dp_panel.c
+@@ -332,8 +332,10 @@ int msm_dp_panel_get_modes(struct msm_dp_panel *msm_dp_panel,
+ 		return -EINVAL;
+ 	}
+ 
+-	if (msm_dp_panel->drm_edid)
++	if (msm_dp_panel->drm_edid) {
++		drm_edid_connector_update(connector, msm_dp_panel->drm_edid);
+ 		return drm_edid_connector_add_modes(connector);
++	}
+ 
+ 	return 0;
+ }
+-- 
+2.55.0
+

@@ -1,0 +1,61 @@
+From 85c8a901102c7b0eedc88dd144d5e5afa90a3a26 Mon Sep 17 00:00:00 2001
+From: Steev Klimaszewski <threeway@gmail.com>
+Date: Thu, 23 Apr 2026 13:15:16 -0500
+Subject: [PATCH 4/11] drm/msm/dp: implement dp_audio_startup to guard against
+ unconnected state
+
+The MSM DP bridge implements dp_audio_prepare and dp_audio_shutdown but
+not dp_audio_startup. drm_bridge_connector_audio_startup() treats a
+missing dp_audio_startup as success and allows the DPCM layer to
+proceed to dp_audio_prepare even when no display is connected.
+msm_dp_audio_prepare() then returns -EINVAL because power_on is false,
+producing continuous dmesg spam at boot and on every PipeWire re-probe:
+
+  ASoC error (-22): at snd_soc_dai_hw_params() on i2s-hifi
+  DisplayPort2 Playback: ASoC error (-22): at __soc_pcm_hw_params()
+
+Add a dp_audio_startup implementation that checks power_on and returns
+-ENOTSUPP when no display is connected, gating the entire audio setup
+sequence at startup so prepare is never reached when the DP link is not
+active. -ENOTSUPP is used deliberately as snd_soc_ret() in soc-utils.c
+treats it as an expected non-error condition and suppresses the log
+output, avoiding unnecessary noise when no display is attached.
+
+Signed-off-by: Steev Klimaszewski <threeway@gmail.com>
+---
+ drivers/gpu/drm/msm/dp/dp_drm.c | 12 ++++++++++++
+ 1 file changed, 12 insertions(+)
+
+diff --git a/drivers/gpu/drm/msm/dp/dp_drm.c b/drivers/gpu/drm/msm/dp/dp_drm.c
+index b659d22f5f28..c03b546180f3 100644
+--- a/drivers/gpu/drm/msm/dp/dp_drm.c
++++ b/drivers/gpu/drm/msm/dp/dp_drm.c
+@@ -49,6 +49,17 @@ static void msm_dp_bridge_debugfs_init(struct drm_bridge *bridge, struct dentry
+ 	msm_dp_display_debugfs_init(dp, root, false);
+ }
+ 
++static int msm_dp_audio_startup(struct drm_bridge *bridge,
++                                struct drm_connector *connector)
++{
++        struct msm_dp *msm_dp_display = to_dp_bridge(bridge)->msm_dp_display;
++
++        if (!msm_dp_display->power_on)
++                return -ENOTSUPP;
++
++        return 0;
++}
++
+ static const struct drm_bridge_funcs msm_dp_bridge_ops = {
+ 	.atomic_duplicate_state = drm_atomic_helper_bridge_duplicate_state,
+ 	.atomic_destroy_state   = drm_atomic_helper_bridge_destroy_state,
+@@ -65,6 +76,7 @@ static const struct drm_bridge_funcs msm_dp_bridge_ops = {
+ 	.hpd_notify   = msm_dp_bridge_hpd_notify,
+ 	.debugfs_init = msm_dp_bridge_debugfs_init,
+ 
++	.dp_audio_startup = msm_dp_audio_startup,
+ 	.dp_audio_prepare = msm_dp_audio_prepare,
+ 	.dp_audio_shutdown = msm_dp_audio_shutdown,
+ };
+-- 
+2.55.0
+

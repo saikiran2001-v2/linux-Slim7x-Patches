@@ -1,0 +1,375 @@
+From 2ee8aba16724d9b242578956405db1f6ae02048b Mon Sep 17 00:00:00 2001
+From: Jens Glathe <jens.glathe@oldschoolsolutions.biz>
+Date: Sat, 18 Jul 2026 19:06:33 +0200
+Subject: [PATCH 11/11] arm64: dts: qcom: x1: disable ps883x USB4 capability
+
+Add the "parade,disable-usb4" property to the PS883x node so that the
+retimer driver treats USB4 as USB3. This allows the combo PHY to remain
+in a DP-capable mode, restoring working DisplayPort output over the
+dock while keeping USB functional.
+
+This is a temporary platform workaround until proper USB4 DP tunneling
+support is available.
+
+Tested-by: Dr. David Alan Gilbert <dave@treblig.org>
+Signed-off-by: Jens Glathe <jens.glathe@oldschoolsolutions.biz>
+---
+ arch/arm64/boot/dts/qcom/hamoa-iot-evk.dts                  | 4 ++++
+ .../boot/dts/qcom/hamoa-lenovo-ideacentre-mini-01q8x10.dts  | 2 ++
+ arch/arm64/boot/dts/qcom/purwa-iot-evk.dts                  | 6 ++++++
+ arch/arm64/boot/dts/qcom/x1-asus-vivobook-s15.dtsi          | 4 ++++
+ arch/arm64/boot/dts/qcom/x1-asus-zenbook-a14.dtsi           | 4 ++++
+ arch/arm64/boot/dts/qcom/x1-crd.dtsi                        | 6 ++++++
+ arch/arm64/boot/dts/qcom/x1-dell-thena.dtsi                 | 4 ++++
+ arch/arm64/boot/dts/qcom/x1-hp-omnibook-x14.dtsi            | 2 ++
+ arch/arm64/boot/dts/qcom/x1-microsoft-denali.dtsi           | 4 ++++
+ arch/arm64/boot/dts/qcom/x1e001de-devkit.dts                | 6 ++++++
+ arch/arm64/boot/dts/qcom/x1e78100-lenovo-thinkpad-t14s.dtsi | 4 ++++
+ arch/arm64/boot/dts/qcom/x1e80100-dell-xps13-9345.dts       | 4 ++++
+ arch/arm64/boot/dts/qcom/x1e80100-lenovo-yoga-slim7x.dts    | 6 ++++++
+ arch/arm64/boot/dts/qcom/x1e80100-medion-sprchrgd-14-s1.dts | 2 ++
+ arch/arm64/boot/dts/qcom/x1e80100-microsoft-romulus.dtsi    | 4 ++++
+ 15 files changed, 62 insertions(+)
+
+diff --git a/arch/arm64/boot/dts/qcom/hamoa-iot-evk.dts b/arch/arm64/boot/dts/qcom/hamoa-iot-evk.dts
+index 9fa86bb6438e..5ec77c5912f8 100644
+--- a/arch/arm64/boot/dts/qcom/hamoa-iot-evk.dts
++++ b/arch/arm64/boot/dts/qcom/hamoa-iot-evk.dts
+@@ -762,6 +762,8 @@ typec-mux@8 {
+ 		orientation-switch;
+ 		retimer-switch;
+ 
++		parade,disable-usb4;
++
+ 		ports {
+ 			#address-cells = <1>;
+ 			#size-cells = <0>;
+@@ -877,6 +879,8 @@ typec-mux@8 {
+ 		retimer-switch;
+ 		orientation-switch;
+ 
++		parade,disable-usb4;
++
+ 		ports {
+ 			#address-cells = <1>;
+ 			#size-cells = <0>;
+diff --git a/arch/arm64/boot/dts/qcom/hamoa-lenovo-ideacentre-mini-01q8x10.dts b/arch/arm64/boot/dts/qcom/hamoa-lenovo-ideacentre-mini-01q8x10.dts
+index bfb7cea56df9..328a360843f4 100644
+--- a/arch/arm64/boot/dts/qcom/hamoa-lenovo-ideacentre-mini-01q8x10.dts
++++ b/arch/arm64/boot/dts/qcom/hamoa-lenovo-ideacentre-mini-01q8x10.dts
+@@ -601,6 +601,8 @@ typec-mux@8 {
+ 		retimer-switch;
+ 		orientation-switch;
+ 
++		parade,disable-usb4;
++
+ 		ports {
+ 			#address-cells = <1>;
+ 			#size-cells = <0>;
+diff --git a/arch/arm64/boot/dts/qcom/purwa-iot-evk.dts b/arch/arm64/boot/dts/qcom/purwa-iot-evk.dts
+index ad503beec1d3..9ce080b9ae89 100644
+--- a/arch/arm64/boot/dts/qcom/purwa-iot-evk.dts
++++ b/arch/arm64/boot/dts/qcom/purwa-iot-evk.dts
+@@ -703,6 +703,8 @@ typec-mux@8 {
+ 		orientation-switch;
+ 		retimer-switch;
+ 
++		parade,disable-usb4;
++
+ 		ports {
+ 			#address-cells = <1>;
+ 			#size-cells = <0>;
+@@ -760,6 +762,8 @@ typec-mux@8 {
+ 		retimer-switch;
+ 		orientation-switch;
+ 
++		parade,disable-usb4;
++
+ 		ports {
+ 			#address-cells = <1>;
+ 			#size-cells = <0>;
+@@ -865,6 +869,8 @@ typec-mux@8 {
+ 		retimer-switch;
+ 		orientation-switch;
+ 
++		parade,disable-usb4;
++
+ 		ports {
+ 			#address-cells = <1>;
+ 			#size-cells = <0>;
+diff --git a/arch/arm64/boot/dts/qcom/x1-asus-vivobook-s15.dtsi b/arch/arm64/boot/dts/qcom/x1-asus-vivobook-s15.dtsi
+index 48c4ad648354..d67ded1da587 100644
+--- a/arch/arm64/boot/dts/qcom/x1-asus-vivobook-s15.dtsi
++++ b/arch/arm64/boot/dts/qcom/x1-asus-vivobook-s15.dtsi
+@@ -678,6 +678,8 @@ typec-mux@8 {
+ 		orientation-switch;
+ 		retimer-switch;
+ 
++		parade,disable-usb4;
++
+ 		ports {
+ 			#address-cells = <1>;
+ 			#size-cells = <0>;
+@@ -798,6 +800,8 @@ typec-mux@8 {
+ 		retimer-switch;
+ 		orientation-switch;
+ 
++		parade,disable-usb4;
++
+ 		ports {
+ 			#address-cells = <1>;
+ 			#size-cells = <0>;
+diff --git a/arch/arm64/boot/dts/qcom/x1-asus-zenbook-a14.dtsi b/arch/arm64/boot/dts/qcom/x1-asus-zenbook-a14.dtsi
+index 388737eaa624..2a85dd9a5e67 100644
+--- a/arch/arm64/boot/dts/qcom/x1-asus-zenbook-a14.dtsi
++++ b/arch/arm64/boot/dts/qcom/x1-asus-zenbook-a14.dtsi
+@@ -930,6 +930,8 @@ typec-mux@8 {
+ 		retimer-switch;
+ 		orientation-switch;
+ 
++		parade,disable-usb4;
++
+ 		ports {
+ 			#address-cells = <1>;
+ 			#size-cells = <0>;
+@@ -1030,6 +1032,8 @@ typec-mux@8 {
+ 		retimer-switch;
+ 		orientation-switch;
+ 
++		parade,disable-usb4;
++
+ 		ports {
+ 			#address-cells = <1>;
+ 			#size-cells = <0>;
+diff --git a/arch/arm64/boot/dts/qcom/x1-crd.dtsi b/arch/arm64/boot/dts/qcom/x1-crd.dtsi
+index 3afc25c02129..c4ee73f8200b 100644
+--- a/arch/arm64/boot/dts/qcom/x1-crd.dtsi
++++ b/arch/arm64/boot/dts/qcom/x1-crd.dtsi
+@@ -1160,6 +1160,8 @@ typec-mux@8 {
+ 		orientation-switch;
+ 		retimer-switch;
+ 
++		parade,disable-usb4;
++
+ 		ports {
+ 			#address-cells = <1>;
+ 			#size-cells = <0>;
+@@ -1217,6 +1219,8 @@ typec-mux@8 {
+ 		retimer-switch;
+ 		orientation-switch;
+ 
++		parade,disable-usb4;
++
+ 		ports {
+ 			#address-cells = <1>;
+ 			#size-cells = <0>;
+@@ -1305,6 +1309,8 @@ typec-mux@8 {
+ 		retimer-switch;
+ 		orientation-switch;
+ 
++		parade,disable-usb4;
++
+ 		ports {
+ 			#address-cells = <1>;
+ 			#size-cells = <0>;
+diff --git a/arch/arm64/boot/dts/qcom/x1-dell-thena.dtsi b/arch/arm64/boot/dts/qcom/x1-dell-thena.dtsi
+index dcabcd821bcb..fa8e39dde6fd 100644
+--- a/arch/arm64/boot/dts/qcom/x1-dell-thena.dtsi
++++ b/arch/arm64/boot/dts/qcom/x1-dell-thena.dtsi
+@@ -913,6 +913,8 @@ typec-mux@8 {
+ 		retimer-switch;
+ 		orientation-switch;
+ 
++		parade,disable-usb4;
++
+ 		ports {
+ 			#address-cells = <1>;
+ 			#size-cells = <0>;
+@@ -1008,6 +1010,8 @@ typec-mux@8 {
+ 		retimer-switch;
+ 		orientation-switch;
+ 
++		parade,disable-usb4;
++
+ 		ports {
+ 			#address-cells = <1>;
+ 			#size-cells = <0>;
+diff --git a/arch/arm64/boot/dts/qcom/x1-hp-omnibook-x14.dtsi b/arch/arm64/boot/dts/qcom/x1-hp-omnibook-x14.dtsi
+index 02708f23a865..4dd62092b880 100644
+--- a/arch/arm64/boot/dts/qcom/x1-hp-omnibook-x14.dtsi
++++ b/arch/arm64/boot/dts/qcom/x1-hp-omnibook-x14.dtsi
+@@ -917,6 +917,8 @@ typec-mux@8 {
+ 		orientation-switch;
+ 		retimer-switch;
+ 
++		parade,disable-usb4;
++
+ 		ports {
+ 			#address-cells = <1>;
+ 			#size-cells = <0>;
+diff --git a/arch/arm64/boot/dts/qcom/x1-microsoft-denali.dtsi b/arch/arm64/boot/dts/qcom/x1-microsoft-denali.dtsi
+index 4dcf03557582..2230997b0f8e 100644
+--- a/arch/arm64/boot/dts/qcom/x1-microsoft-denali.dtsi
++++ b/arch/arm64/boot/dts/qcom/x1-microsoft-denali.dtsi
+@@ -759,6 +759,8 @@ typec-mux@8 {
+ 		retimer-switch;
+ 		orientation-switch;
+ 
++		parade,disable-usb4;
++
+ 		ports {
+ 			#address-cells = <1>;
+ 			#size-cells = <0>;
+@@ -822,6 +824,8 @@ typec-mux@8 {
+ 		retimer-switch;
+ 		orientation-switch;
+ 
++		parade,disable-usb4;
++
+ 		ports {
+ 			#address-cells = <1>;
+ 			#size-cells = <0>;
+diff --git a/arch/arm64/boot/dts/qcom/x1e001de-devkit.dts b/arch/arm64/boot/dts/qcom/x1e001de-devkit.dts
+index 7b932ace951c..3b77e7610479 100644
+--- a/arch/arm64/boot/dts/qcom/x1e001de-devkit.dts
++++ b/arch/arm64/boot/dts/qcom/x1e001de-devkit.dts
+@@ -794,6 +794,8 @@ typec-mux@8 {
+ 		orientation-switch;
+ 		retimer-switch;
+ 
++		parade,disable-usb4;
++
+ 		ports {
+ 			#address-cells = <1>;
+ 			#size-cells = <0>;
+@@ -851,6 +853,8 @@ typec-mux@8 {
+ 		retimer-switch;
+ 		orientation-switch;
+ 
++		parade,disable-usb4;
++
+ 		ports {
+ 			#address-cells = <1>;
+ 			#size-cells = <0>;
+@@ -942,6 +946,8 @@ typec-mux@8 {
+ 		retimer-switch;
+ 		orientation-switch;
+ 
++		parade,disable-usb4;
++
+ 		ports {
+ 			#address-cells = <1>;
+ 			#size-cells = <0>;
+diff --git a/arch/arm64/boot/dts/qcom/x1e78100-lenovo-thinkpad-t14s.dtsi b/arch/arm64/boot/dts/qcom/x1e78100-lenovo-thinkpad-t14s.dtsi
+index 4969a29c947f..770c33af45e1 100644
+--- a/arch/arm64/boot/dts/qcom/x1e78100-lenovo-thinkpad-t14s.dtsi
++++ b/arch/arm64/boot/dts/qcom/x1e78100-lenovo-thinkpad-t14s.dtsi
+@@ -1140,6 +1140,8 @@ typec-mux@8 {
+ 		orientation-switch;
+ 		retimer-switch;
+ 
++		parade,disable-usb4;
++
+ 		ports {
+ 			#address-cells = <1>;
+ 			#size-cells = <0>;
+@@ -1263,6 +1265,8 @@ typec-mux@8 {
+ 		retimer-switch;
+ 		orientation-switch;
+ 
++		parade,disable-usb4;
++
+ 		ports {
+ 			#address-cells = <1>;
+ 			#size-cells = <0>;
+diff --git a/arch/arm64/boot/dts/qcom/x1e80100-dell-xps13-9345.dts b/arch/arm64/boot/dts/qcom/x1e80100-dell-xps13-9345.dts
+index f0e6149117c5..f77e5edcb605 100644
+--- a/arch/arm64/boot/dts/qcom/x1e80100-dell-xps13-9345.dts
++++ b/arch/arm64/boot/dts/qcom/x1e80100-dell-xps13-9345.dts
+@@ -898,6 +898,8 @@ typec-mux@8 {
+ 		retimer-switch;
+ 		orientation-switch;
+ 
++		parade,disable-usb4;
++
+ 		ports {
+ 			#address-cells = <1>;
+ 			#size-cells = <0>;
+@@ -961,6 +963,8 @@ typec-mux@8 {
+ 		retimer-switch;
+ 		orientation-switch;
+ 
++		parade,disable-usb4;
++
+ 		ports {
+ 			#address-cells = <1>;
+ 			#size-cells = <0>;
+diff --git a/arch/arm64/boot/dts/qcom/x1e80100-lenovo-yoga-slim7x.dts b/arch/arm64/boot/dts/qcom/x1e80100-lenovo-yoga-slim7x.dts
+index eef15617c644..dd134f9e09fc 100644
+--- a/arch/arm64/boot/dts/qcom/x1e80100-lenovo-yoga-slim7x.dts
++++ b/arch/arm64/boot/dts/qcom/x1e80100-lenovo-yoga-slim7x.dts
+@@ -1059,6 +1059,8 @@ typec-mux@8 {
+ 		orientation-switch;
+ 		retimer-switch;
+ 
++		parade,disable-usb4;
++
+ 		ports {
+ 			#address-cells = <1>;
+ 			#size-cells = <0>;
+@@ -1116,6 +1118,8 @@ typec-mux@8 {
+ 		retimer-switch;
+ 		orientation-switch;
+ 
++		parade,disable-usb4;
++
+ 		ports {
+ 			#address-cells = <1>;
+ 			#size-cells = <0>;
+@@ -1189,6 +1193,8 @@ typec-mux@8 {
+ 		retimer-switch;
+ 		orientation-switch;
+ 
++		parade,disable-usb4;
++
+ 		ports {
+ 			#address-cells = <1>;
+ 			#size-cells = <0>;
+diff --git a/arch/arm64/boot/dts/qcom/x1e80100-medion-sprchrgd-14-s1.dts b/arch/arm64/boot/dts/qcom/x1e80100-medion-sprchrgd-14-s1.dts
+index f95b1f9f439d..55f9df8e5f40 100644
+--- a/arch/arm64/boot/dts/qcom/x1e80100-medion-sprchrgd-14-s1.dts
++++ b/arch/arm64/boot/dts/qcom/x1e80100-medion-sprchrgd-14-s1.dts
+@@ -857,6 +857,8 @@ typec-mux@8 {
+ 		retimer-switch;
+ 		orientation-switch;
+ 
++		parade,disable-usb4;
++
+ 		ports {
+ 			#address-cells = <1>;
+ 			#size-cells = <0>;
+diff --git a/arch/arm64/boot/dts/qcom/x1e80100-microsoft-romulus.dtsi b/arch/arm64/boot/dts/qcom/x1e80100-microsoft-romulus.dtsi
+index afa5d44657a0..4ad6826f6462 100644
+--- a/arch/arm64/boot/dts/qcom/x1e80100-microsoft-romulus.dtsi
++++ b/arch/arm64/boot/dts/qcom/x1e80100-microsoft-romulus.dtsi
+@@ -901,6 +901,8 @@ typec-mux@8 {
+ 		retimer-switch;
+ 		orientation-switch;
+ 
++		parade,disable-usb4;
++
+ 		ports {
+ 			#address-cells = <1>;
+ 			#size-cells = <0>;
+@@ -983,6 +985,8 @@ typec-mux@8 {
+ 		retimer-switch;
+ 		orientation-switch;
+ 
++		parade,disable-usb4;
++
+ 		ports {
+ 			#address-cells = <1>;
+ 			#size-cells = <0>;
+-- 
+2.55.0
+

@@ -1,8 +1,8 @@
-From 016565ac90f6107256d34efa2dbf317bc5a5b07f Mon Sep 17 00:00:00 2001
+From 70b0e9d364e3e0d4c5638607089a252a952234fd Mon Sep 17 00:00:00 2001
 From: Saikiran <bjsaikiran@gmail.com>
 Date: Sun, 8 Feb 2026 19:58:34 +0530
-Subject: [PATCH] drm/msm/dpu: Implement wedge detection and safe recovery for
- stuck encoders
+Subject: [PATCH 2/11] drm/msm/dpu: Implement wedge detection and safe recovery
+ for stuck encoders
 
 This patch addresses a system stability issue where the device reboots or
 hangs when disconnecting an external display that has become unresponsive
@@ -43,7 +43,7 @@ Signed-off-by: Saikiran <bjsaikiran@gmail.com>
  6 files changed, 292 insertions(+), 5 deletions(-)
 
 diff --git a/drivers/gpu/drm/msm/disp/dpu1/dpu_encoder.c b/drivers/gpu/drm/msm/disp/dpu1/dpu_encoder.c
-index eba1d52211f6..0b9a3672a188 100644
+index 778e231d4967..c41a69e8096c 100644
 --- a/drivers/gpu/drm/msm/disp/dpu1/dpu_encoder.c
 +++ b/drivers/gpu/drm/msm/disp/dpu1/dpu_encoder.c
 @@ -11,6 +11,8 @@
@@ -283,7 +283,7 @@ index eba1d52211f6..0b9a3672a188 100644
  			dpu_encoder_frame_done_timeout, 0);
  
 diff --git a/drivers/gpu/drm/msm/disp/dpu1/dpu_encoder.h b/drivers/gpu/drm/msm/disp/dpu1/dpu_encoder.h
-index ca1ca2e51d7e..6a7d1826c892 100644
+index 4942097e7613..8918162a73ef 100644
 --- a/drivers/gpu/drm/msm/disp/dpu1/dpu_encoder.h
 +++ b/drivers/gpu/drm/msm/disp/dpu1/dpu_encoder.h
 @@ -98,4 +98,6 @@ void dpu_encoder_cleanup_wb_job(struct drm_encoder *drm_enc,
@@ -317,10 +317,10 @@ index 61b22d949454..0430efae39be 100644
  {
  	atomic_inc_return(&phys->pending_ctlstart_cnt);
 diff --git a/drivers/gpu/drm/msm/disp/dpu1/dpu_encoder_phys_vid.c b/drivers/gpu/drm/msm/disp/dpu1/dpu_encoder_phys_vid.c
-index 0ba777bda253..1c66460cf757 100644
+index ba810f26ea30..e07324c807cc 100644
 --- a/drivers/gpu/drm/msm/disp/dpu1/dpu_encoder_phys_vid.c
 +++ b/drivers/gpu/drm/msm/disp/dpu1/dpu_encoder_phys_vid.c
-@@ -531,6 +531,7 @@ static int dpu_encoder_phys_vid_wait_for_commit_done(
+@@ -533,6 +533,7 @@ static int dpu_encoder_phys_vid_wait_for_commit_done(
  		struct dpu_encoder_phys *phys_enc)
  {
  	struct dpu_hw_ctl *hw_ctl = phys_enc->hw_ctl;
@@ -328,7 +328,7 @@ index 0ba777bda253..1c66460cf757 100644
  	int ret;
  
  	if (!hw_ctl)
-@@ -540,7 +541,40 @@ static int dpu_encoder_phys_vid_wait_for_commit_done(
+@@ -542,7 +543,40 @@ static int dpu_encoder_phys_vid_wait_for_commit_done(
  		(hw_ctl->ops.get_flush_register(hw_ctl) == 0),
  		msecs_to_jiffies(50));
  	if (ret <= 0) {
@@ -371,10 +371,10 @@ index 0ba777bda253..1c66460cf757 100644
  	}
  
 diff --git a/drivers/gpu/drm/msm/dp/dp_ctrl.c b/drivers/gpu/drm/msm/dp/dp_ctrl.c
-index da22fddbf12b..4e83c66afd3b 100644
+index fe4468795c36..2356a96468fa 100644
 --- a/drivers/gpu/drm/msm/dp/dp_ctrl.c
 +++ b/drivers/gpu/drm/msm/dp/dp_ctrl.c
-@@ -2193,7 +2193,14 @@ static int msm_dp_ctrl_process_phy_test_request(struct msm_dp_ctrl_private *ctrl
+@@ -2186,7 +2186,14 @@ static int msm_dp_ctrl_process_phy_test_request(struct msm_dp_ctrl_private *ctrl
  	if (ctrl->stream_clks_on) {
  		drm_dbg_dp(ctrl->drm_dev, "pixel clks already enabled\n");
  	} else {
@@ -390,7 +390,7 @@ index da22fddbf12b..4e83c66afd3b 100644
  		if (ret) {
  			DRM_ERROR("Failed to start pixel clocks. ret=%d\n", ret);
  			return ret;
-@@ -2515,9 +2522,27 @@ int msm_dp_ctrl_on_stream(struct msm_dp_ctrl *msm_dp_ctrl, bool force_link_train
+@@ -2508,9 +2515,27 @@ int msm_dp_ctrl_on_stream(struct msm_dp_ctrl *msm_dp_ctrl, bool force_link_train
  	if (ctrl->stream_clks_on) {
  		drm_dbg_dp(ctrl->drm_dev, "pixel clks already enabled\n");
  	} else {
@@ -421,7 +421,7 @@ index da22fddbf12b..4e83c66afd3b 100644
  		}
  		ctrl->stream_clks_on = true;
 diff --git a/drivers/gpu/drm/msm/dp/dp_display.c b/drivers/gpu/drm/msm/dp/dp_display.c
-index 8e4247023c1a..96f90e0ead04 100644
+index bf8a43b2b61a..1d85d135d93a 100644
 --- a/drivers/gpu/drm/msm/dp/dp_display.c
 +++ b/drivers/gpu/drm/msm/dp/dp_display.c
 @@ -27,6 +27,7 @@
@@ -432,7 +432,7 @@ index 8e4247023c1a..96f90e0ead04 100644
  
  static bool psr_enabled = false;
  module_param(psr_enabled, bool, 0);
-@@ -1653,6 +1654,15 @@ void msm_dp_bridge_atomic_enable(struct drm_bridge *drm_bridge,
+@@ -1404,6 +1405,15 @@ void msm_dp_bridge_atomic_enable(struct drm_bridge *drm_bridge,
  
  	msm_dp_display_enable(msm_dp_display, force_link_train);
  
@@ -448,7 +448,7 @@ index 8e4247023c1a..96f90e0ead04 100644
  	rc = msm_dp_display_post_enable(dp);
  	if (rc) {
  		DRM_ERROR("DP display post enable failed, rc=%d\n", rc);
-@@ -1675,6 +1685,17 @@ void msm_dp_bridge_atomic_disable(struct drm_bridge *drm_bridge,
+@@ -1422,6 +1432,17 @@ void msm_dp_bridge_atomic_disable(struct drm_bridge *drm_bridge,
  
  	msm_dp_display = container_of(dp, struct msm_dp_display_private, msm_dp_display);
  
@@ -466,7 +466,7 @@ index 8e4247023c1a..96f90e0ead04 100644
  	msm_dp_ctrl_push_idle(msm_dp_display->ctrl);
  }
  
-@@ -1688,6 +1709,29 @@ void msm_dp_bridge_atomic_post_disable(struct drm_bridge *drm_bridge,
+@@ -1434,6 +1455,29 @@ void msm_dp_bridge_atomic_post_disable(struct drm_bridge *drm_bridge,
  
  	msm_dp_display = container_of(dp, struct msm_dp_display_private, msm_dp_display);
  
@@ -494,8 +494,8 @@ index 8e4247023c1a..96f90e0ead04 100644
 +	}
 +
  	if (dp->is_edp)
- 		msm_dp_hpd_unplug_handle(msm_dp_display, 0);
+ 		msm_dp_hpd_unplug_handle(msm_dp_display);
  
 -- 
-2.51.0
+2.55.0
 

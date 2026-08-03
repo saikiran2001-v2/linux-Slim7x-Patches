@@ -1,0 +1,76 @@
+From 39b030e27c647e3359ed00be55c7fbe84916c35d Mon Sep 17 00:00:00 2001
+From: Jens Glathe <jens.glathe@oldschoolsolutions.biz>
+Date: Sat, 18 Jul 2026 19:06:31 +0200
+Subject: [PATCH 9/11] usb: typec: mux: ps883x: refactor DP altmode handling
+ and support TYPEC_DP_STATE_F
+
+Several docks, including the Lenovo 40B0 and SSK SC220, still send the
+legacy TYPEC_DP_STATE_F mode request (deprecated since DisplayPort Alt
+Mode spec version 1.0b). Treat it as USB3 + DP altmode (same as
+TYPEC_DP_STATE_D) so that DP altmode works correctly, especially on
+the 40B0 in Type-C fallback mode.
+
+Extract the state handling into ps883x_apply_dp_altmode() (modelled
+after qmp-combo-phy) for consistency.
+
+Assisted-by: Grok(xAI):4.3
+Signed-off-by: Jens Glathe <jens.glathe@oldschoolsolutions.biz>
+---
+ drivers/usb/typec/mux/ps883x.c | 34 ++++++++++++++++++++--------------
+ 1 file changed, 20 insertions(+), 14 deletions(-)
+
+diff --git a/drivers/usb/typec/mux/ps883x.c b/drivers/usb/typec/mux/ps883x.c
+index 3fa26ce01a9c..da5df9ac8a49 100644
+--- a/drivers/usb/typec/mux/ps883x.c
++++ b/drivers/usb/typec/mux/ps883x.c
+@@ -188,6 +188,25 @@ static int ps883x_configure(struct ps883x_retimer *retimer, int cfg0,
+ 	return 0;
+ }
+ 
++static void ps883x_apply_dp_altmode(int *cfg0, int *cfg1, int dp_state)
++{
++	*cfg1 |= CONN_STATUS_1_DP_CONNECTED | CONN_STATUS_1_DP_HPD_LEVEL;
++
++	switch (dp_state) {
++	case TYPEC_DP_STATE_D:
++	case TYPEC_DP_STATE_F:
++		*cfg0 |= CONN_STATUS_0_USB_3_1_CONNECTED;
++		fallthrough;
++	case TYPEC_DP_STATE_C:
++	case TYPEC_DP_STATE_E:
++		*cfg1 |= CONN_STATUS_1_DP_SINK_REQUESTED |
++			 CONN_STATUS_1_DP_PIN_ASSIGNMENT_C_D;
++		break;
++	default:
++		break;
++	}
++}
++
+ static int ps883x_set(struct ps883x_retimer *retimer, struct typec_retimer_state *state)
+ {
+ 	struct typec_thunderbolt_data *tb_data;
+@@ -203,20 +222,7 @@ static int ps883x_set(struct ps883x_retimer *retimer, struct typec_retimer_state
+ 	if (state->alt) {
+ 		switch (state->alt->svid) {
+ 		case USB_TYPEC_DP_SID:
+-			cfg1 |= CONN_STATUS_1_DP_CONNECTED |
+-				CONN_STATUS_1_DP_HPD_LEVEL;
+-
+-			switch (state->mode)  {
+-			case TYPEC_DP_STATE_D:
+-				cfg0 |= CONN_STATUS_0_USB_3_1_CONNECTED;
+-				fallthrough;
+-			case TYPEC_DP_STATE_C:
+-				cfg1 |= CONN_STATUS_1_DP_SINK_REQUESTED |
+-					CONN_STATUS_1_DP_PIN_ASSIGNMENT_C_D;
+-				break;
+-			default: /* MODE_E */
+-				break;
+-			}
++			ps883x_apply_dp_altmode(&cfg0, &cfg1, state->mode);
+ 			break;
+ 		case USB_TYPEC_TBT_SID:
+ 			tb_data = state->data;
+-- 
+2.55.0
+

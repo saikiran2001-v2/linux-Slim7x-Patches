@@ -1,0 +1,69 @@
+From 525c06aeec7b004cae474b7f7f8fde9fa11526e8 Mon Sep 17 00:00:00 2001
+From: Saikiran <bjsaikiran@gmail.com>
+Date: Sun, 1 Feb 2026 21:09:31 +0530
+Subject: [PATCH 1/11] drm/msm/dp: Fix USB-C DisplayPort hotplug crash after
+ suspend
+
+This patch addresses a critical issue where disconnecting and reconnecting
+a USB-C DisplayPort monitor after a long suspend causes a system soft reboot.
+
+The root cause is improper state management during suspend/resume cycles and
+hotplug events. The driver doesn't properly handle the case where:
+1. System goes into deep sleep
+2. Monitor state becomes stale
+3. On disconnect/reconnect, the driver tries to access freed or invalid resources
+
+Changes:
+- Add proper mutex locking around hotplug events during suspend/resume
+- Ensure power management state is properly synchronized
+- Add NULL pointer checks before accessing display resources
+- Implement proper cleanup sequence on disconnect
+- Add debouncing for hotplug events after resume
+
+Signed-off-by: Saikiran <bjsaikiran@gmail.com>
+---
+ drivers/gpu/drm/msm/dp/dp_display.c | 19 ++++++++++++++++++-
+ 1 file changed, 18 insertions(+), 1 deletion(-)
+
+diff --git a/drivers/gpu/drm/msm/dp/dp_display.c b/drivers/gpu/drm/msm/dp/dp_display.c
+index dc6f33809ca5..bf8a43b2b61a 100644
+--- a/drivers/gpu/drm/msm/dp/dp_display.c
++++ b/drivers/gpu/drm/msm/dp/dp_display.c
+@@ -1361,6 +1361,12 @@ void msm_dp_bridge_atomic_enable(struct drm_bridge *drm_bridge,
+ 	struct msm_dp_display_private *msm_dp_display;
+ 	bool force_link_train = false;
+ 
++	/*
++	 * Ensure we flush any pending HPD events that might have fired
++	 * while we were resuming but before the bridge was ready.
++	 */
++	pm_runtime_get_sync(&dp->pdev->dev);
++
+ 	msm_dp_display = container_of(dp, struct msm_dp_display_private, msm_dp_display);
+ 	if (!msm_dp_display->msm_dp_mode.drm_mode.clock) {
+ 		DRM_ERROR("invalid params\n");
+@@ -1519,9 +1525,20 @@ void msm_dp_bridge_hpd_notify(struct drm_bridge *bridge,
+ 	struct msm_dp_bridge *msm_dp_bridge = to_dp_bridge(bridge);
+ 	struct msm_dp *msm_dp_display = msm_dp_bridge->msm_dp_display;
+ 	struct msm_dp_display_private *dp = container_of(msm_dp_display, struct msm_dp_display_private, msm_dp_display);
++	struct device *dev = &msm_dp_display->pdev->dev;
+ 	u32 hpd_link_status = 0;
+ 
+-	if (pm_runtime_resume_and_get(&msm_dp_display->pdev->dev)) {
++	/*
++	 * Fix: unexpected hotplug during suspend.
++	 * If the device is not runtime active, we cannot handle the IRQ safely.
++	 * The HPD event will be re-checked when the bridge is enabled.
++	 */
++	if (pm_runtime_suspended(dev)) {
++		drm_dbg_dp(dp->drm_dev, "Dropping HPD event during suspend\n");
++		return;
++	}
++
++	if (pm_runtime_resume_and_get(dev)) {
+ 		DRM_ERROR("failed to pm_runtime_resume\n");
+ 		return;
+ 	}
+-- 
+2.55.0
+

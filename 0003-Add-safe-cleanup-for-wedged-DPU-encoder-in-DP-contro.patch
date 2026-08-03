@@ -1,0 +1,101 @@
+From b67b263146b8edcf9b978afcffcc77646265d2f8 Mon Sep 17 00:00:00 2001
+From: Saikiran <bjsaikiran@gmail.com>
+Date: Thu, 23 Apr 2026 10:36:09 +0530
+Subject: [PATCH 3/11] Add safe cleanup for wedged DPU encoder in DP controller
+
+Signed-off-by: Saikiran <bjsaikiran@gmail.com>
+---
+ drivers/gpu/drm/msm/dp/dp_ctrl.c    | 28 ++++++++++++++++++++++++++++
+ drivers/gpu/drm/msm/dp/dp_ctrl.h    |  1 +
+ drivers/gpu/drm/msm/dp/dp_display.c | 19 +++++++++++--------
+ 3 files changed, 40 insertions(+), 8 deletions(-)
+
+diff --git a/drivers/gpu/drm/msm/dp/dp_ctrl.c b/drivers/gpu/drm/msm/dp/dp_ctrl.c
+index 2356a96468fa..e45ffcb61608 100644
+--- a/drivers/gpu/drm/msm/dp/dp_ctrl.c
++++ b/drivers/gpu/drm/msm/dp/dp_ctrl.c
+@@ -2636,6 +2636,34 @@ void msm_dp_ctrl_off(struct msm_dp_ctrl *msm_dp_ctrl)
+ 	phy_power_off(phy);
+ }
+ 
++void msm_dp_ctrl_off_wedged(struct msm_dp_ctrl *msm_dp_ctrl)
++{
++	struct msm_dp_ctrl_private *ctrl;
++	struct phy *phy;
++
++	ctrl = container_of(msm_dp_ctrl, struct msm_dp_ctrl_private, msm_dp_ctrl);
++	phy = ctrl->phy;
++
++	/*
++	 * When the DPU encoder is wedged, skip DP controller MMIO writes
++	 * (mainlink_disable, panel vsc, controller reset) to avoid potential
++	 * bus hangs. Only clean up clocks and PHY PLL, which are safe.
++	 *
++	 * Without this, link_clks_on stays true after the wedge disconnect,
++	 * causing the next msm_dp_ctrl_on_stream() to skip phy_power_on,
++	 * leaving the pixel clock permanently stuck at 'off' on reconnect.
++	 */
++	if (ctrl->stream_clks_on) {
++		clk_disable_unprepare(ctrl->pixel_clk);
++		ctrl->stream_clks_on = false;
++	}
++
++	dev_pm_opp_set_rate(ctrl->dev, 0);
++	msm_dp_ctrl_link_clk_disable(&ctrl->msm_dp_ctrl);
++
++	phy_power_off(phy);
++}
++
+ irqreturn_t msm_dp_ctrl_isr(struct msm_dp_ctrl *msm_dp_ctrl)
+ {
+ 	struct msm_dp_ctrl_private *ctrl;
+diff --git a/drivers/gpu/drm/msm/dp/dp_ctrl.h b/drivers/gpu/drm/msm/dp/dp_ctrl.h
+index f68bee62713f..e0c43160340f 100644
+--- a/drivers/gpu/drm/msm/dp/dp_ctrl.h
++++ b/drivers/gpu/drm/msm/dp/dp_ctrl.h
+@@ -20,6 +20,7 @@ int msm_dp_ctrl_on_link(struct msm_dp_ctrl *msm_dp_ctrl);
+ int msm_dp_ctrl_on_stream(struct msm_dp_ctrl *msm_dp_ctrl, bool force_link_train);
+ void msm_dp_ctrl_off_link_stream(struct msm_dp_ctrl *msm_dp_ctrl);
+ void msm_dp_ctrl_off(struct msm_dp_ctrl *msm_dp_ctrl);
++void msm_dp_ctrl_off_wedged(struct msm_dp_ctrl *msm_dp_ctrl);
+ void msm_dp_ctrl_push_idle(struct msm_dp_ctrl *msm_dp_ctrl);
+ irqreturn_t msm_dp_ctrl_isr(struct msm_dp_ctrl *msm_dp_ctrl);
+ void msm_dp_ctrl_handle_sink_request(struct msm_dp_ctrl *msm_dp_ctrl);
+diff --git a/drivers/gpu/drm/msm/dp/dp_display.c b/drivers/gpu/drm/msm/dp/dp_display.c
+index 1d85d135d93a..f28ca7e794c5 100644
+--- a/drivers/gpu/drm/msm/dp/dp_display.c
++++ b/drivers/gpu/drm/msm/dp/dp_display.c
+@@ -1456,19 +1456,22 @@ void msm_dp_bridge_atomic_post_disable(struct drm_bridge *drm_bridge,
+ 	msm_dp_display = container_of(dp, struct msm_dp_display_private, msm_dp_display);
+ 
+ 	/*
+-	 * If DPU encoder is wedged, skip all hardware access in post_disable.
+-	 * msm_dp_display_disable() calls msm_dp_ctrl_off() which does MMIO
+-	 * to the DP controller, mainlink disable, PHY power off etc.
+-	 * When the display hardware is frozen, these MMIO accesses can cause
+-	 * a bus hang leading to kernel panic and spontaneous reboot.
+-	 * Just update software state and release runtime PM.
++	 * If DPU encoder is wedged, skip DP controller MMIO writes (mainlink
++	 * disable, controller reset) that could hang if the display AXI fabric
++	 * is unstable. But DO clean up link clocks and the PHY PLL safely.
++	 *
++	 * Without proper clock cleanup, ctrl->link_clks_on stays true after
++	 * wedge disconnect, causing the next msm_dp_ctrl_on_stream() to skip
++	 * phy_power_on entirely. That leaves the pixel clock permanently stuck
++	 * at 'off' on reconnect, so the second monitor never comes back on.
+ 	 */
+ 	if (drm_bridge->encoder && dpu_encoder_is_wedged(drm_bridge->encoder)) {
+-		DRM_WARN("encoder wedged, skipping DP hardware disable\n");
++		DRM_WARN("encoder wedged, performing safe DP clock/PHY cleanup\n");
+ 		mutex_lock(&msm_dp_display->event_mutex);
++		msm_dp_ctrl_off_wedged(msm_dp_display->ctrl);
++		msm_dp_display_host_phy_exit(msm_dp_display);
+ 		dp->power_on = false;
+ 		dp->link_ready = false;
+-		msm_dp_display->phy_initialized = false;
+ 		msm_dp_display->hpd_state = ST_DISCONNECTED;
+ 		/* Flush stale HPD events so reconnection starts clean */
+ 		msm_dp_display->event_gndx = msm_dp_display->event_pndx;
+-- 
+2.55.0
+
