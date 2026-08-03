@@ -1,4 +1,4 @@
-From 82ace389eaf801a0f9d16b59866a96bda6282946 Mon Sep 17 00:00:00 2001
+From 8d5bfb2d518e1a06e67c0329e27aeb563a2458d0 Mon Sep 17 00:00:00 2001
 From: Saikiran <bjsaikiran@gmail.com>
 Date: Mon, 3 Aug 2026 10:25:04 +0530
 Subject: [PATCH 5/5] media: ov02c10: follow firmware power sequencing
@@ -60,6 +60,3 @@ index 221cb93126ec..42aa43ea0a22 100644
  	}
  
  	return 0;
--- 
-2.55.0
-

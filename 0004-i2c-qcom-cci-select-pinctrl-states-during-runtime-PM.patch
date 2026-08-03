@@ -1,4 +1,4 @@
-From 9cd1e7a78aaadfbc5e5fad9fca8e7bd75df7d78d Mon Sep 17 00:00:00 2001
+From 18e0beedd0aa36e72726143b986a1b62d6e9cd22 Mon Sep 17 00:00:00 2001
 From: Saikiran <bjsaikiran@gmail.com>
 Date: Mon, 3 Aug 2026 10:24:38 +0530
 Subject: [PATCH 4/5] i2c: qcom-cci: select pinctrl states during runtime PM
@@ -50,6 +50,3 @@ index bdeda3979c48..b021edfd68d8 100644
  	cci_init(cci);
  	return 0;
  }
--- 
-2.55.0
-

@@ -1,4 +1,4 @@
-From 443da44bff2de3f7dd23aa69419e06157fa070d0 Mon Sep 17 00:00:00 2001
+From 4db4ff336549ab1556ac70ba1be5ff058cda4dc9 Mon Sep 17 00:00:00 2001
 From: Saikiran <bjsaikiran@gmail.com>
 Date: Mon, 26 Jan 2026 21:53:58 +0530
 Subject: [PATCH 2/5] media: i2c: ov02c10: Correct power-on sequence and timing
@@ -54,6 +54,3 @@ index fa7cc48b769a..3bfbd0deb126 100644
  	}
  
  	return 0;
--- 
-2.55.0
-
