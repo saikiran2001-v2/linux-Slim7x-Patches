@@ -1,100 +1,61 @@
-# AudioReach Topology Fix
+# Slim 7x audio fixes
 
-This branch contains patches to enable AudioReach topology loading on the Lenovo Yoga Slim 7x.
+This branch contains the ASoC changes used by the Lenovo Yoga Slim 7x
+(X1E80100), including the latest LPASS WSA runtime-PM and v2.5 register fixes.
 
-## Description
-Enables the loading of AudioReach topology files required for sound functionality on the Qualcomm Snapdragon X Elite platform.
+## Patch order
 
-## Exact Issue
-
-### Bug Title: AudioReach: Topology loading fails with firmware path resolution error on Snapdragon X Elite platforms
-
-**Log Reference:**
+```text
+0001-ASoC-qcom-x1e80100-Add-Dell-XPS13-9345-support.patch
+0002-ASoC-qcom-x1e80100-Add-Lenovo-Yoga-Slim-7x-Support.patch
+0003-ASoC-codecs-lpass-wsa-macro-Switch-to-PM-clock-frame.patch
+0004-ASoC-codecs-lpass-wsa-macro-Guard-optional-NPL-clock.patch
+0005-ASoC-codecs-lpass-wsa-macro-use-sparse-flat-regcache.patch
+0006-ASoC-codecs-lpass-wsa-macro-fix-v2.5-speaker-mode-of.patch
 ```
-[    8.350070] snd-x1e80100 sound: Loading topology from qcom/x1e80100/LENOVO/83ED/LenovoSlim7x-tplg.bin
-[    8.350XXX] snd-x1e80100 sound: error: failed to load topology: -2
-```
 
-## Patch Details
-- `0001-Revert-arm64-dts-qcom-x1-el2-Add-qcom-broken-reset-f.patch`
-- `0002-ASoC-qcom-x1e80100-Add-Lenovo-Yoga-Slim-7x-Support.patch`
-- `0003-ASoC-qcom-x1e80100-Add-topology-file-loading-support.patch`
+Patch 1 introduces the machine-driver configuration structure used by patch 2.
+The remaining patches fix WSA clock/runtime-PM handling, tolerate an optional
+NPL clock, reduce the flat regcache allocation, and use the correct LPASS v2.5
+register offsets for speaker mode.
 
-## Instructions
+The old `qcom,broken-reset` revert is no longer part of this branch. The former
+machine-driver “topology loading” patch is also intentionally absent: it only
+requested and released the firmware file and did not load it into the DSP. The
+working AudioReach topology path remains available through the normal audio
+stack.
 
-Apply the patches to your kernel source:
+## Apply
 
 ```bash
-cd /path/to/kernel/source
-git am /path/to/patches/*.patch
+git am /path/to/s7x-patches/*.patch
 ```
 
-## Setup Instructions
+## Firmware and UCM prerequisites
 
-**Important:** This patch series requires specific topology and UCM configuration files to function.
+Build the Slim 7x topology from
+[linux-msm/audioreach-topology](https://github.com/linux-msm/audioreach-topology)
+and install it using the exact firmware name expected by the current topology
+and UCM configuration. Install a recent
+[alsa-ucm-conf](https://github.com/alsa-project/alsa-ucm-conf) containing the
+X1E80100 Lenovo profile, then restart the user audio stack:
 
-### 1. Audioreach-topology
-Latest `linux-next` contains required binaries. Alternatively, compile from source as follows:
-
-* Download latest sources with Lenovo Yoga Slim 7x support from [https://github.com/linux-msm/audioreach-topology/](https://github.com/linux-msm/audioreach-topology/)
-* Build via:
 ```bash
-cmake .
-cmake --build .
+systemctl --user restart pipewire pipewire-pulse wireplumber
 ```
 
-### 2. AudioReach Topology Installation
+Verify card and topology initialization with:
 
-**Files to install:**
+```bash
+cat /proc/asound/cards
+aplay -l
+journalctl -k -b | grep -Ei 'audio|audioreach|tplg|wsa'
+```
 
-1. **Topology binary** (`.bin`):
-   
-   Copy and rename the binary to `LenovoSlim7x-tplg.bin`:
-   ```bash
-   sudo cp X1E80100-LENOVO-Yoga-Slim7x-tplg.bin \
-     /lib/firmware/updates/qcom/x1e80100/LENOVO/83ED/LenovoSlim7x-tplg.bin
-   
-   sudo chmod 644 /lib/firmware/updates/qcom/x1e80100/LENOVO/83ED/LenovoSlim7x-tplg.bin
-   ```
+## Safety and status
 
-2. **UCM configuration** (`.conf`):
-   ```bash
-   sudo mkdir -p /usr/share/alsa/ucm2/conf.d/x1e80100/LENOVO/83ED/
-   
-   sudo cp X1E80100-LENOVO-Yoga-Slim7x.conf \
-     /usr/share/alsa/ucm2/conf.d/x1e80100/LENOVO/83ED
-
-   sudo chmod 644 /usr/share/alsa/ucm2/conf.d/x1e80100/LENOVO/83ED/X1E80100-LENOVO-Yoga-Slim7x.conf
-   ```
-
-3. ALSA Configuration
-
-* Download the latest configuration with Lenovo Yoga Slim 7x support from [https://github.com/alsa-project/alsa-ucm-conf](https://github.com/alsa-project/alsa-ucm-conf)
-* Follow the instructions in the repository's `README.md` to install.
-
-**Important:** To avoid potential hardware damage, lower the gain settings before use. Change the value `84` to `5` in the following files:
-- `/usr/share/alsa/ucm2/codecs/qcom-lpass/wsa-macro/four-speakers/init.conf`
-- `/usr/share/alsa/ucm2/codecs
-
-**Note**: If you are on kernel with latest tag in sound, the sound will be low and then you can experiment with this value gradually without damaging your hardware. 
-
-4. **Reload audio stack:**
-   ```bash
-   systemctl --user restart pipewire pipewire-pulse wireplumber
-   ```
-
-5. **Verify:**
-   ```bash
-   # Check topology loaded
-   dmesg | grep -i tplg
-   
-   # Check card detected
-   aplay -l
-   
-   # Check UCM
-   alsaucm listcards
-   ```
-
-## Tested On
-- Kernel Version: **7.0-rc1**
-- **Hardware:** Lenovo Yoga Slim 7x (Snapdragon X Elite)
+Tested on a Lenovo Yoga Slim 7x 14Q8X9 with Linux 7.2-rc6 / Silvercore 1.3.
+Audio registers and works, and the former WSA register `0x5dc` errors are gone.
+Speaker volume remains lower than Windows and calibration/protection is not
+fully equivalent to the vendor stack. Keep conservative UCM gain values and do
+not remove speaker-safety limits merely because a topology file is installed.
