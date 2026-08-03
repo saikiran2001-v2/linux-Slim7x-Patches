@@ -1,7 +1,7 @@
-From 85c8a901102c7b0eedc88dd144d5e5afa90a3a26 Mon Sep 17 00:00:00 2001
+From d18c7ad330247cfb8fbec7de35d60bc2fcd4d5f7 Mon Sep 17 00:00:00 2001
 From: Steev Klimaszewski <threeway@gmail.com>
 Date: Thu, 23 Apr 2026 13:15:16 -0500
-Subject: [PATCH 4/11] drm/msm/dp: implement dp_audio_startup to guard against
+Subject: [PATCH 04/11] drm/msm/dp: implement dp_audio_startup to guard against
  unconnected state
 
 The MSM DP bridge implements dp_audio_prepare and dp_audio_shutdown but
@@ -56,6 +56,3 @@ index b659d22f5f28..c03b546180f3 100644
  	.dp_audio_prepare = msm_dp_audio_prepare,
  	.dp_audio_shutdown = msm_dp_audio_shutdown,
  };
--- 
-2.55.0
-

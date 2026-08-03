@@ -1,7 +1,7 @@
-From 7f85eb02cf8040bd1a93b3dd8e3ae8c67cdaf3a5 Mon Sep 17 00:00:00 2001
+From 3dc42ba4028e260a26453bf24a4dc1294d452951 Mon Sep 17 00:00:00 2001
 From: Jens Glathe <jens.glathe@oldschoolsolutions.biz>
 Date: Tue, 2 Jun 2026 12:25:13 +0200
-Subject: [PATCH 6/11] drm/msm/dp: add missing drm_edid_connector_update()
+Subject: [PATCH 06/11] drm/msm/dp: add missing drm_edid_connector_update()
  before add_modes on cached EDID
 
 After commit 5bea90ad9743d2 ("drm/msm/dp: convert to struct drm_edid
@@ -40,6 +40,3 @@ index 6bb021820d7c..5b4954e7cb74 100644
  
  	return 0;
  }
--- 
-2.55.0
-

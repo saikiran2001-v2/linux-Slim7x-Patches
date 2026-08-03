@@ -1,4 +1,4 @@
-From 2ee8aba16724d9b242578956405db1f6ae02048b Mon Sep 17 00:00:00 2001
+From d8420f9f49a4dd757c999f808579bcc637663f50 Mon Sep 17 00:00:00 2001
 From: Jens Glathe <jens.glathe@oldschoolsolutions.biz>
 Date: Sat, 18 Jul 2026 19:06:33 +0200
 Subject: [PATCH 11/11] arm64: dts: qcom: x1: disable ps883x USB4 capability
@@ -32,7 +32,7 @@ Signed-off-by: Jens Glathe <jens.glathe@oldschoolsolutions.biz>
  15 files changed, 62 insertions(+)
 
 diff --git a/arch/arm64/boot/dts/qcom/hamoa-iot-evk.dts b/arch/arm64/boot/dts/qcom/hamoa-iot-evk.dts
-index 9fa86bb6438e..5ec77c5912f8 100644
+index c7ba4b353ddd..6d795e479f62 100644
 --- a/arch/arm64/boot/dts/qcom/hamoa-iot-evk.dts
 +++ b/arch/arm64/boot/dts/qcom/hamoa-iot-evk.dts
 @@ -762,6 +762,8 @@ typec-mux@8 {
@@ -44,7 +44,7 @@ index 9fa86bb6438e..5ec77c5912f8 100644
  		ports {
  			#address-cells = <1>;
  			#size-cells = <0>;
-@@ -877,6 +879,8 @@ typec-mux@8 {
+@@ -867,6 +869,8 @@ typec-mux@8 {
  		retimer-switch;
  		orientation-switch;
  
@@ -120,10 +120,10 @@ index 48c4ad648354..d67ded1da587 100644
  			#address-cells = <1>;
  			#size-cells = <0>;
 diff --git a/arch/arm64/boot/dts/qcom/x1-asus-zenbook-a14.dtsi b/arch/arm64/boot/dts/qcom/x1-asus-zenbook-a14.dtsi
-index 388737eaa624..2a85dd9a5e67 100644
+index 66d566808f58..e1033d3bef35 100644
 --- a/arch/arm64/boot/dts/qcom/x1-asus-zenbook-a14.dtsi
 +++ b/arch/arm64/boot/dts/qcom/x1-asus-zenbook-a14.dtsi
-@@ -930,6 +930,8 @@ typec-mux@8 {
+@@ -845,6 +845,8 @@ typec-mux@8 {
  		retimer-switch;
  		orientation-switch;
  
@@ -132,7 +132,7 @@ index 388737eaa624..2a85dd9a5e67 100644
  		ports {
  			#address-cells = <1>;
  			#size-cells = <0>;
-@@ -1030,6 +1032,8 @@ typec-mux@8 {
+@@ -945,6 +947,8 @@ typec-mux@8 {
  		retimer-switch;
  		orientation-switch;
  
@@ -142,10 +142,10 @@ index 388737eaa624..2a85dd9a5e67 100644
  			#address-cells = <1>;
  			#size-cells = <0>;
 diff --git a/arch/arm64/boot/dts/qcom/x1-crd.dtsi b/arch/arm64/boot/dts/qcom/x1-crd.dtsi
-index 3afc25c02129..c4ee73f8200b 100644
+index a9c5c523575e..3371be07bfc2 100644
 --- a/arch/arm64/boot/dts/qcom/x1-crd.dtsi
 +++ b/arch/arm64/boot/dts/qcom/x1-crd.dtsi
-@@ -1160,6 +1160,8 @@ typec-mux@8 {
+@@ -967,6 +967,8 @@ typec-mux@8 {
  		orientation-switch;
  		retimer-switch;
  
@@ -154,7 +154,7 @@ index 3afc25c02129..c4ee73f8200b 100644
  		ports {
  			#address-cells = <1>;
  			#size-cells = <0>;
-@@ -1217,6 +1219,8 @@ typec-mux@8 {
+@@ -1024,6 +1026,8 @@ typec-mux@8 {
  		retimer-switch;
  		orientation-switch;
  
@@ -163,7 +163,7 @@ index 3afc25c02129..c4ee73f8200b 100644
  		ports {
  			#address-cells = <1>;
  			#size-cells = <0>;
-@@ -1305,6 +1309,8 @@ typec-mux@8 {
+@@ -1102,6 +1106,8 @@ typec-mux@8 {
  		retimer-switch;
  		orientation-switch;
  
@@ -173,10 +173,10 @@ index 3afc25c02129..c4ee73f8200b 100644
  			#address-cells = <1>;
  			#size-cells = <0>;
 diff --git a/arch/arm64/boot/dts/qcom/x1-dell-thena.dtsi b/arch/arm64/boot/dts/qcom/x1-dell-thena.dtsi
-index dcabcd821bcb..fa8e39dde6fd 100644
+index db291730130c..c40ce3278741 100644
 --- a/arch/arm64/boot/dts/qcom/x1-dell-thena.dtsi
 +++ b/arch/arm64/boot/dts/qcom/x1-dell-thena.dtsi
-@@ -913,6 +913,8 @@ typec-mux@8 {
+@@ -850,6 +850,8 @@ typec-mux@8 {
  		retimer-switch;
  		orientation-switch;
  
@@ -185,7 +185,7 @@ index dcabcd821bcb..fa8e39dde6fd 100644
  		ports {
  			#address-cells = <1>;
  			#size-cells = <0>;
-@@ -1008,6 +1010,8 @@ typec-mux@8 {
+@@ -945,6 +947,8 @@ typec-mux@8 {
  		retimer-switch;
  		orientation-switch;
  
@@ -208,7 +208,7 @@ index 02708f23a865..4dd62092b880 100644
  			#address-cells = <1>;
  			#size-cells = <0>;
 diff --git a/arch/arm64/boot/dts/qcom/x1-microsoft-denali.dtsi b/arch/arm64/boot/dts/qcom/x1-microsoft-denali.dtsi
-index 4dcf03557582..2230997b0f8e 100644
+index 7559557610ed..1aa075d6eeda 100644
 --- a/arch/arm64/boot/dts/qcom/x1-microsoft-denali.dtsi
 +++ b/arch/arm64/boot/dts/qcom/x1-microsoft-denali.dtsi
 @@ -759,6 +759,8 @@ typec-mux@8 {
@@ -230,10 +230,10 @@ index 4dcf03557582..2230997b0f8e 100644
  			#address-cells = <1>;
  			#size-cells = <0>;
 diff --git a/arch/arm64/boot/dts/qcom/x1e001de-devkit.dts b/arch/arm64/boot/dts/qcom/x1e001de-devkit.dts
-index 7b932ace951c..3b77e7610479 100644
+index 2e38402e2c14..ada5da526634 100644
 --- a/arch/arm64/boot/dts/qcom/x1e001de-devkit.dts
 +++ b/arch/arm64/boot/dts/qcom/x1e001de-devkit.dts
-@@ -794,6 +794,8 @@ typec-mux@8 {
+@@ -795,6 +795,8 @@ typec-mux@8 {
  		orientation-switch;
  		retimer-switch;
  
@@ -242,7 +242,7 @@ index 7b932ace951c..3b77e7610479 100644
  		ports {
  			#address-cells = <1>;
  			#size-cells = <0>;
-@@ -851,6 +853,8 @@ typec-mux@8 {
+@@ -852,6 +854,8 @@ typec-mux@8 {
  		retimer-switch;
  		orientation-switch;
  
@@ -251,7 +251,7 @@ index 7b932ace951c..3b77e7610479 100644
  		ports {
  			#address-cells = <1>;
  			#size-cells = <0>;
-@@ -942,6 +946,8 @@ typec-mux@8 {
+@@ -943,6 +947,8 @@ typec-mux@8 {
  		retimer-switch;
  		orientation-switch;
  
@@ -261,10 +261,10 @@ index 7b932ace951c..3b77e7610479 100644
  			#address-cells = <1>;
  			#size-cells = <0>;
 diff --git a/arch/arm64/boot/dts/qcom/x1e78100-lenovo-thinkpad-t14s.dtsi b/arch/arm64/boot/dts/qcom/x1e78100-lenovo-thinkpad-t14s.dtsi
-index 4969a29c947f..770c33af45e1 100644
+index 5d49df41be02..c8bfb38c64ad 100644
 --- a/arch/arm64/boot/dts/qcom/x1e78100-lenovo-thinkpad-t14s.dtsi
 +++ b/arch/arm64/boot/dts/qcom/x1e78100-lenovo-thinkpad-t14s.dtsi
-@@ -1140,6 +1140,8 @@ typec-mux@8 {
+@@ -895,6 +895,8 @@ typec-mux@8 {
  		orientation-switch;
  		retimer-switch;
  
@@ -273,7 +273,7 @@ index 4969a29c947f..770c33af45e1 100644
  		ports {
  			#address-cells = <1>;
  			#size-cells = <0>;
-@@ -1263,6 +1265,8 @@ typec-mux@8 {
+@@ -1018,6 +1020,8 @@ typec-mux@8 {
  		retimer-switch;
  		orientation-switch;
  
@@ -283,10 +283,10 @@ index 4969a29c947f..770c33af45e1 100644
  			#address-cells = <1>;
  			#size-cells = <0>;
 diff --git a/arch/arm64/boot/dts/qcom/x1e80100-dell-xps13-9345.dts b/arch/arm64/boot/dts/qcom/x1e80100-dell-xps13-9345.dts
-index f0e6149117c5..f77e5edcb605 100644
+index ce7b10ea89b6..11412099eaec 100644
 --- a/arch/arm64/boot/dts/qcom/x1e80100-dell-xps13-9345.dts
 +++ b/arch/arm64/boot/dts/qcom/x1e80100-dell-xps13-9345.dts
-@@ -898,6 +898,8 @@ typec-mux@8 {
+@@ -726,6 +726,8 @@ typec-mux@8 {
  		retimer-switch;
  		orientation-switch;
  
@@ -295,7 +295,7 @@ index f0e6149117c5..f77e5edcb605 100644
  		ports {
  			#address-cells = <1>;
  			#size-cells = <0>;
-@@ -961,6 +963,8 @@ typec-mux@8 {
+@@ -789,6 +791,8 @@ typec-mux@8 {
  		retimer-switch;
  		orientation-switch;
  
@@ -305,10 +305,10 @@ index f0e6149117c5..f77e5edcb605 100644
  			#address-cells = <1>;
  			#size-cells = <0>;
 diff --git a/arch/arm64/boot/dts/qcom/x1e80100-lenovo-yoga-slim7x.dts b/arch/arm64/boot/dts/qcom/x1e80100-lenovo-yoga-slim7x.dts
-index eef15617c644..dd134f9e09fc 100644
+index beb1475d7fa0..d16d3627796b 100644
 --- a/arch/arm64/boot/dts/qcom/x1e80100-lenovo-yoga-slim7x.dts
 +++ b/arch/arm64/boot/dts/qcom/x1e80100-lenovo-yoga-slim7x.dts
-@@ -1059,6 +1059,8 @@ typec-mux@8 {
+@@ -863,6 +863,8 @@ typec-mux@8 {
  		orientation-switch;
  		retimer-switch;
  
@@ -317,7 +317,7 @@ index eef15617c644..dd134f9e09fc 100644
  		ports {
  			#address-cells = <1>;
  			#size-cells = <0>;
-@@ -1116,6 +1118,8 @@ typec-mux@8 {
+@@ -920,6 +922,8 @@ typec-mux@8 {
  		retimer-switch;
  		orientation-switch;
  
@@ -326,7 +326,7 @@ index eef15617c644..dd134f9e09fc 100644
  		ports {
  			#address-cells = <1>;
  			#size-cells = <0>;
-@@ -1189,6 +1193,8 @@ typec-mux@8 {
+@@ -977,6 +981,8 @@ typec-mux@8 {
  		retimer-switch;
  		orientation-switch;
  
@@ -349,10 +349,10 @@ index f95b1f9f439d..55f9df8e5f40 100644
  			#address-cells = <1>;
  			#size-cells = <0>;
 diff --git a/arch/arm64/boot/dts/qcom/x1e80100-microsoft-romulus.dtsi b/arch/arm64/boot/dts/qcom/x1e80100-microsoft-romulus.dtsi
-index afa5d44657a0..4ad6826f6462 100644
+index 28342cb84ded..4ccfbe7e14eb 100644
 --- a/arch/arm64/boot/dts/qcom/x1e80100-microsoft-romulus.dtsi
 +++ b/arch/arm64/boot/dts/qcom/x1e80100-microsoft-romulus.dtsi
-@@ -901,6 +901,8 @@ typec-mux@8 {
+@@ -902,6 +902,8 @@ typec-mux@8 {
  		retimer-switch;
  		orientation-switch;
  
@@ -361,7 +361,7 @@ index afa5d44657a0..4ad6826f6462 100644
  		ports {
  			#address-cells = <1>;
  			#size-cells = <0>;
-@@ -983,6 +985,8 @@ typec-mux@8 {
+@@ -984,6 +986,8 @@ typec-mux@8 {
  		retimer-switch;
  		orientation-switch;
  
@@ -370,6 +370,3 @@ index afa5d44657a0..4ad6826f6462 100644
  		ports {
  			#address-cells = <1>;
  			#size-cells = <0>;
--- 
-2.55.0
-

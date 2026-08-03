@@ -1,7 +1,7 @@
-From 39b030e27c647e3359ed00be55c7fbe84916c35d Mon Sep 17 00:00:00 2001
+From 9e2eec57550522669cb8a9a7ec99fd4a7c32f14c Mon Sep 17 00:00:00 2001
 From: Jens Glathe <jens.glathe@oldschoolsolutions.biz>
 Date: Sat, 18 Jul 2026 19:06:31 +0200
-Subject: [PATCH 9/11] usb: typec: mux: ps883x: refactor DP altmode handling
+Subject: [PATCH 09/11] usb: typec: mux: ps883x: refactor DP altmode handling
  and support TYPEC_DP_STATE_F
 
 Several docks, including the Lenovo 40B0 and SSK SC220, still send the
@@ -71,6 +71,3 @@ index 3fa26ce01a9c..da5df9ac8a49 100644
  			break;
  		case USB_TYPEC_TBT_SID:
  			tb_data = state->data;
--- 
-2.55.0
-

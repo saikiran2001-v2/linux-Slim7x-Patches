@@ -1,7 +1,7 @@
-From 525c06aeec7b004cae474b7f7f8fde9fa11526e8 Mon Sep 17 00:00:00 2001
+From f544bd9c1cba43562ebe95c23df24a1c5d17bc7a Mon Sep 17 00:00:00 2001
 From: Saikiran <bjsaikiran@gmail.com>
 Date: Sun, 1 Feb 2026 21:09:31 +0530
-Subject: [PATCH 1/11] drm/msm/dp: Fix USB-C DisplayPort hotplug crash after
+Subject: [PATCH 01/11] drm/msm/dp: Fix USB-C DisplayPort hotplug crash after
  suspend
 
 This patch addresses a critical issue where disconnecting and reconnecting
@@ -64,6 +64,3 @@ index dc6f33809ca5..bf8a43b2b61a 100644
  		DRM_ERROR("failed to pm_runtime_resume\n");
  		return;
  	}
--- 
-2.55.0
-

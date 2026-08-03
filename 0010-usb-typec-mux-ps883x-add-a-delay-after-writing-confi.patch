@@ -1,4 +1,4 @@
-From 2768c7c0a8ccb793ac125cddb98536ec1a940659 Mon Sep 17 00:00:00 2001
+From e36ee9625f5d62e887fcc2b0bbc37ad8779ca83c Mon Sep 17 00:00:00 2001
 From: Jens Glathe <jens.glathe@oldschoolsolutions.biz>
 Date: Sat, 18 Jul 2026 19:06:32 +0200
 Subject: [PATCH 10/11] usb: typec: mux: ps883x: add a delay after writing
@@ -29,6 +29,3 @@ index da5df9ac8a49..66a14cb72da1 100644
  	return 0;
  }
  
--- 
-2.55.0
-

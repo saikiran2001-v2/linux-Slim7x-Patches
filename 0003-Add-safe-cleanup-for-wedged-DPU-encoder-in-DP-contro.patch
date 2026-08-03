@@ -1,7 +1,8 @@
-From b67b263146b8edcf9b978afcffcc77646265d2f8 Mon Sep 17 00:00:00 2001
+From 902253a4abe57b06330210c85d12373ddc80b005 Mon Sep 17 00:00:00 2001
 From: Saikiran <bjsaikiran@gmail.com>
 Date: Thu, 23 Apr 2026 10:36:09 +0530
-Subject: [PATCH 3/11] Add safe cleanup for wedged DPU encoder in DP controller
+Subject: [PATCH 03/11] Add safe cleanup for wedged DPU encoder in DP
+ controller
 
 Signed-off-by: Saikiran <bjsaikiran@gmail.com>
 ---
@@ -11,10 +12,10 @@ Signed-off-by: Saikiran <bjsaikiran@gmail.com>
  3 files changed, 40 insertions(+), 8 deletions(-)
 
 diff --git a/drivers/gpu/drm/msm/dp/dp_ctrl.c b/drivers/gpu/drm/msm/dp/dp_ctrl.c
-index 2356a96468fa..e45ffcb61608 100644
+index f109cf52fb74..01599721ae00 100644
 --- a/drivers/gpu/drm/msm/dp/dp_ctrl.c
 +++ b/drivers/gpu/drm/msm/dp/dp_ctrl.c
-@@ -2636,6 +2636,34 @@ void msm_dp_ctrl_off(struct msm_dp_ctrl *msm_dp_ctrl)
+@@ -2633,6 +2633,34 @@ void msm_dp_ctrl_off(struct msm_dp_ctrl *msm_dp_ctrl)
  	phy_power_off(phy);
  }
  
@@ -96,6 +97,3 @@ index 1d85d135d93a..f28ca7e794c5 100644
  		msm_dp_display->hpd_state = ST_DISCONNECTED;
  		/* Flush stale HPD events so reconnection starts clean */
  		msm_dp_display->event_gndx = msm_dp_display->event_pndx;
--- 
-2.55.0
-

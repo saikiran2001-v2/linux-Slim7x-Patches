@@ -1,7 +1,7 @@
-From cbaedd67872b0ffb817c6e7953f9b5e79288e7f7 Mon Sep 17 00:00:00 2001
+From 07d66b8aad899302e31f1da7f198bbc07b0033b3 Mon Sep 17 00:00:00 2001
 From: Xilin Wu <sophon@radxa.com>
 Date: Wed, 13 May 2026 16:59:50 +0800
-Subject: [PATCH 7/11] drm/msm/dpu: Reassert core clock rate on runtime resume
+Subject: [PATCH 07/11] drm/msm/dpu: Reassert core clock rate on runtime resume
 
 DPU runtime suspend can drop the power-domain performance state even
 though the clock framework still reports the previously programmed core
@@ -63,6 +63,3 @@ index da3556eb6ecc..23e0a5b2ca22 100644
  	dpu_vbif_init_memtypes(dpu_kms);
  
  	drm_for_each_encoder(encoder, ddev)
--- 
-2.55.0
-

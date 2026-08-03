@@ -1,7 +1,7 @@
-From 49b0ab71ad8bbc7db253f7757a3f5f9de1f8229a Mon Sep 17 00:00:00 2001
+From 3057639a2ac1ca60d870f80a600f3a2cd4aea8c4 Mon Sep 17 00:00:00 2001
 From: Jens Glathe <jens.glathe@oldschoolsolutions.biz>
 Date: Sat, 18 Jul 2026 19:06:30 +0200
-Subject: [PATCH 8/11] usb: typec: ps883x: Return -EOPNOTSUPP for USB4 when
+Subject: [PATCH 08/11] usb: typec: ps883x: Return -EOPNOTSUPP for USB4 when
  parade,disable-usb4 is set
 
 On Qualcomm X1E80100 platforms using the Parade PS883x retimer (like
@@ -65,6 +65,3 @@ index 64e0a61b776a..3fa26ce01a9c 100644
  	mutex_init(&retimer->lock);
  
  	retimer->regmap = devm_regmap_init_i2c(client, &ps883x_retimer_regmap);
--- 
-2.55.0
-

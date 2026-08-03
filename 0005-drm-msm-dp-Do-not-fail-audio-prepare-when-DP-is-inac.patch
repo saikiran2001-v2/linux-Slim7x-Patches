@@ -1,7 +1,7 @@
-From 4336e60a1189abc104d3fb5cc79ed3325e38eea4 Mon Sep 17 00:00:00 2001
+From 3f4d1f8cd8cadf09ea97369e0079635bec68ba82 Mon Sep 17 00:00:00 2001
 From: Xilin Wu <sophon@radxa.com>
 Date: Tue, 12 May 2026 17:20:26 +0800
-Subject: [PATCH 5/11] drm/msm/dp: Do not fail audio prepare when DP is
+Subject: [PATCH 05/11] drm/msm/dp: Do not fail audio prepare when DP is
  inactive
 
 Userspace can probe all HDMI/DP PCM devices exposed by an ALSA card while
@@ -53,6 +53,3 @@ index 41018e82efa1..af7b72dd896c 100644
  
  	audio = msm_dp_audio_get_data(msm_dp_display);
  	if (IS_ERR(audio)) {
--- 
-2.55.0
-
