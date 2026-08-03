@@ -1,4 +1,4 @@
-From 418d7dad4284180f2f17159d9f63f571cebe003d Mon Sep 17 00:00:00 2001
+From ed81e3b6c57d390bb6cc05769ed46f034f6c1e56 Mon Sep 17 00:00:00 2001
 From: Saikiran <bjsaikiran@gmail.com>
 Date: Thu, 5 Feb 2026 10:52:11 +0530
 Subject: [PATCH 5/5] platform/arm64: lenovo-yoga-slim7x: Add keyboard
@@ -106,6 +106,3 @@ index 8f6d523395bc..1487f92dcf3c 100644
  	return 0;
  }
  
--- 
-2.55.0
-

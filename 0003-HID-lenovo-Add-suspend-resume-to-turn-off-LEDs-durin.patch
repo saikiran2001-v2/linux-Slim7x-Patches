@@ -1,4 +1,4 @@
-From 8397b7cc240a04b8a1033af22fc160fd72714baf Mon Sep 17 00:00:00 2001
+From 2911561266f787cf795de1ab776d38f9d2fa3382 Mon Sep 17 00:00:00 2001
 From: Saikiran <bjsaikiran@gmail.com>
 Date: Thu, 5 Feb 2026 10:29:17 +0530
 Subject: [PATCH 3/5] HID: lenovo: Add suspend/resume to turn off LEDs during
@@ -86,6 +86,3 @@ index 3976d7b53b14..1e441bae25c7 100644
  };
  module_hid_driver(lenovo_driver);
  
--- 
-2.55.0
-

@@ -1,4 +1,4 @@
-From ae471a5ea1be1f76f29713c20c8069d6c0ca6a76 Mon Sep 17 00:00:00 2001
+From 751043a306f0eb23849ed381df02291dbce2458b Mon Sep 17 00:00:00 2001
 From: Maya Matuszczyk <maccraft123mc@gmail.com>
 Date: Fri, 27 Sep 2024 20:53:41 +0200
 Subject: [PATCH 4/5] UBUNTU: SAUCE: platform: arm64: Add driver for Lenovo
@@ -30,10 +30,10 @@ Signed-off-by: Saikiran <bjsaikiran@gmail.com>
  create mode 100644 drivers/platform/arm64/lenovo-yoga-slim7x.c
 
 diff --git a/MAINTAINERS b/MAINTAINERS
-index 9272f0b2beff..9edcc365ec7f 100644
+index 5114e6db7307..c17e1aba35a3 100644
 --- a/MAINTAINERS
 +++ b/MAINTAINERS
-@@ -14702,6 +14702,12 @@ F:	drivers/hid/hid-lenovo-go-s.c
+@@ -14705,6 +14705,12 @@ F:	drivers/hid/hid-lenovo-go-s.c
  F:	drivers/hid/hid-lenovo-go.c
  F:	drivers/hid/hid-lenovo.c
  
@@ -284,6 +284,3 @@ index 000000000000..8f6d523395bc
 +
 +MODULE_DESCRIPTION("Lenovo Yoga Slim 7x Embedded Controller");
 +MODULE_LICENSE("GPL");
--- 
-2.55.0
-
