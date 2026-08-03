@@ -1,0 +1,65 @@
+From 82ace389eaf801a0f9d16b59866a96bda6282946 Mon Sep 17 00:00:00 2001
+From: Saikiran <bjsaikiran@gmail.com>
+Date: Mon, 3 Aug 2026 10:25:04 +0530
+Subject: [PATCH 5/5] media: ov02c10: follow firmware power sequencing
+
+The Yoga Slim 7x firmware powers the sensor rails before MCLK and disables MCLK before the rails. It also holds reset for 1 ms before shutdown and waits 10 ms after releasing reset. Follow that ordering to avoid back-powering an unpowered sensor through MCLK and to give the sensor enough startup time.
+---
+ drivers/media/i2c/ov02c10.c | 20 +++++++++++---------
+ 1 file changed, 11 insertions(+), 9 deletions(-)
+
+diff --git a/drivers/media/i2c/ov02c10.c b/drivers/media/i2c/ov02c10.c
+index 221cb93126ec..42aa43ea0a22 100644
+--- a/drivers/media/i2c/ov02c10.c
++++ b/drivers/media/i2c/ov02c10.c
+@@ -661,12 +661,13 @@ static int ov02c10_power_off(struct device *dev)
+ 	struct ov02c10 *ov02c10 = to_ov02c10(sd);
+ 
+ 	gpiod_set_value_cansleep(ov02c10->reset, 1);
++	usleep_range(1000, 1100);
++
++	clk_disable_unprepare(ov02c10->img_clk);
+ 
+ 	regulator_bulk_disable(ARRAY_SIZE(ov02c10_supply_names),
+ 			       ov02c10->supplies);
+ 
+-	clk_disable_unprepare(ov02c10->img_clk);
+-
+ 	return 0;
+ }
+ 
+@@ -682,23 +683,24 @@ static int ov02c10_power_on(struct device *dev)
+ 		usleep_range(5000, 6000);
+ 	}
+ 
+-	ret = clk_prepare_enable(ov02c10->img_clk);
++	ret = regulator_bulk_enable(ARRAY_SIZE(ov02c10_supply_names),
++				    ov02c10->supplies);
+ 	if (ret < 0) {
+-		dev_err(dev, "failed to enable imaging clock: %d", ret);
++		dev_err(dev, "failed to enable regulators: %d", ret);
+ 		return ret;
+ 	}
+ 
+-	ret = regulator_bulk_enable(ARRAY_SIZE(ov02c10_supply_names),
+-				    ov02c10->supplies);
++	ret = clk_prepare_enable(ov02c10->img_clk);
+ 	if (ret < 0) {
+-		dev_err(dev, "failed to enable regulators: %d", ret);
+-		clk_disable_unprepare(ov02c10->img_clk);
++		dev_err(dev, "failed to enable imaging clock: %d", ret);
++		regulator_bulk_disable(ARRAY_SIZE(ov02c10_supply_names),
++				       ov02c10->supplies);
+ 		return ret;
+ 	}
+ 
+ 	if (ov02c10->reset) {
+ 		gpiod_set_value_cansleep(ov02c10->reset, 0);
+-		usleep_range(5000, 5500);
++		usleep_range(10000, 11000);
+ 	}
+ 
+ 	return 0;
+-- 
+2.55.0
+

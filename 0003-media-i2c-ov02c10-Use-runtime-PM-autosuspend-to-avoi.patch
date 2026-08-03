@@ -1,8 +1,10 @@
-From f20c21d2d00f2a8d32c48319fd98953f70fa4994 Mon Sep 17 00:00:00 2001
+From cee5f8760bbd45afd9e1d795c4e88ccde77496e8 Mon Sep 17 00:00:00 2001
 From: Saikiran <bjsaikiran@gmail.com>
 Date: Mon, 26 Jan 2026 21:54:26 +0530
-Subject: [PATCH 6/6] media: i2c: ov02c10: Use runtime PM autosuspend to avoid
+Subject: [PATCH 3/5] media: i2c: ov02c10: Use runtime PM autosuspend to avoid
  brownouts
+
+* Don't punish me with bad UX for lenovo's hardware cheapout
 
 On Qualcomm X1E80100 platforms, the OV02C10 sensor experiences brownouts
 if power-cycled too quickly (< 2.3s) due to slow passive discharge of
@@ -65,5 +67,5 @@ index 3bfbd0deb126..221cb93126ec 100644
  	pm_runtime_enable(ov02c10->dev);
  
 -- 
-2.51.0
+2.55.0
 

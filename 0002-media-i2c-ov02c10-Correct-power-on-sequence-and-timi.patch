@@ -1,7 +1,7 @@
-From 1c48c56e843981b2d411f02a46aaa50bf5d71652 Mon Sep 17 00:00:00 2001
+From 443da44bff2de3f7dd23aa69419e06157fa070d0 Mon Sep 17 00:00:00 2001
 From: Saikiran <bjsaikiran@gmail.com>
 Date: Mon, 26 Jan 2026 21:53:58 +0530
-Subject: [PATCH 2/6] media: i2c: ov02c10: Correct power-on sequence and timing
+Subject: [PATCH 2/5] media: i2c: ov02c10: Correct power-on sequence and timing
 
 The previous power-on sequence did not strictly follow the hardware timing
 requirements (T1), potentially leading to initialization failures on some
@@ -55,5 +55,5 @@ index fa7cc48b769a..3bfbd0deb126 100644
  
  	return 0;
 -- 
-2.51.0
+2.55.0
 

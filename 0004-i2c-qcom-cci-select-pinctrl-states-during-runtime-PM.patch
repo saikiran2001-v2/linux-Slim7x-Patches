@@ -1,0 +1,55 @@
+From 9cd1e7a78aaadfbc5e5fad9fca8e7bd75df7d78d Mon Sep 17 00:00:00 2001
+From: Saikiran <bjsaikiran@gmail.com>
+Date: Mon, 3 Aug 2026 10:24:38 +0530
+Subject: [PATCH 4/5] i2c: qcom-cci: select pinctrl states during runtime PM
+
+CCI pinctrl sleep states bias the bus pins down, but the runtime PM callbacks only gated clocks. Select the sleep state before suspending and restore the default state before enabling the controller. This also prevents powered-off camera sensors from being back-fed through SDA and SCL.
+---
+ drivers/i2c/busses/i2c-qcom-cci.c | 14 +++++++++++++-
+ 1 file changed, 13 insertions(+), 1 deletion(-)
+
+diff --git a/drivers/i2c/busses/i2c-qcom-cci.c b/drivers/i2c/busses/i2c-qcom-cci.c
+index bdeda3979c48..b021edfd68d8 100644
+--- a/drivers/i2c/busses/i2c-qcom-cci.c
++++ b/drivers/i2c/busses/i2c-qcom-cci.c
+@@ -10,6 +10,7 @@
+ #include <linux/module.h>
+ #include <linux/of.h>
+ #include <linux/platform_device.h>
++#include <linux/pinctrl/consumer.h>
+ #include <linux/pm_runtime.h>
+ 
+ #define CCI_HW_VERSION				0x0
+@@ -474,6 +475,11 @@ static void cci_disable_clocks(struct cci *cci)
+ static int __maybe_unused cci_suspend_runtime(struct device *dev)
+ {
+ 	struct cci *cci = dev_get_drvdata(dev);
++	int ret;
++
++	ret = pinctrl_pm_select_sleep_state(dev);
++	if (ret)
++		return ret;
+ 
+ 	cci_disable_clocks(cci);
+ 	return 0;
+@@ -484,10 +490,16 @@ static int __maybe_unused cci_resume_runtime(struct device *dev)
+ 	struct cci *cci = dev_get_drvdata(dev);
+ 	int ret;
+ 
+-	ret = cci_enable_clocks(cci);
++	ret = pinctrl_pm_select_default_state(dev);
+ 	if (ret)
+ 		return ret;
+ 
++	ret = cci_enable_clocks(cci);
++	if (ret) {
++		pinctrl_pm_select_sleep_state(dev);
++		return ret;
++	}
++
+ 	cci_init(cci);
+ 	return 0;
+ }
+-- 
+2.55.0
+
